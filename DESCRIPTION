@@ -13,3 +13,5 @@ Imports:
     httr2,
     jsonlite,
     tidyr
+URL: https://github.com/tem19/yaf
+BugReports: https://github.com/tem19/yaf/issues
