@@ -24,7 +24,7 @@ yaf_get_report <- function(login,
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
   if (search_query_report == TRUE) {
-    ReportType <- "SEARCH_QUERY_REPORT"
+    ReportType <- "SEARCH_QUERY_PERFORMANCE_REPORT"
   } else {
     ReportType <- "CUSTOM_REPORT"
   }
