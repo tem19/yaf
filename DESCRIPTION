@@ -1,0 +1,15 @@
+Package: yaf
+Title: Yandex Direct API Functions
+Version: 0.0.0.9000
+Authors@R: 
+    person("Artem", "Rogozhin", , "tem19@live.ru", role = c("aut", "cre"))
+Description: This package import reports from Yandex Direct API.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports: 
+    dplyr,
+    httr2,
+    jsonlite,
+    tidyr
