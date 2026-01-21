@@ -14,11 +14,19 @@ yaf_get_report <- function(login,
                            date_from,
                            date_to,
                            fields,
-                           goals = NULL) {
+                           goals = NULL,
+                           search_query_report = FALSE) {
 
   # Проверка обязательного аргумента fields
   if (missing(fields) || is.null(fields)) {
     stop("Ошибка: необходимо указать вектор полей в аргументе 'fields'.")
+  }
+
+  # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
+  if (search_query_report == TRUE) {
+    ReportType <- "SEARCH_QUERY_REPORT"
+  } else {
+    ReportType <- "CUSTOM_REPORT"
   }
 
   # 1. Получаем токен
@@ -36,7 +44,7 @@ yaf_get_report <- function(login,
         Limit = 2000000L
       ),
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
-      ReportType = "CUSTOM_REPORT",
+      ReportType = ReportType,
       DateRangeType = "CUSTOM_DATE",
       Format = "TSV",
       IncludeVAT = "YES"
