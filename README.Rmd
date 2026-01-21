@@ -1,6 +1,7 @@
 ---
 output: github_document
 ---
+# yaf <img src="man/figures/logo.png" align="right" height="139" />
 
 Пакет `yaf` предназначен для удобной работы с API Яндекс Директа. Он обеспечивает безопасную авторизацию и надежную выгрузку отчетов.
 
