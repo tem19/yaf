@@ -15,5 +15,7 @@
 
 Вы можете установить актуальную версию пакета прямо из GitHub:
 
-\`\`\`R \# install.packages(“devtools”)
-devtools::install_github(“tem19/yaf”)
+``` r
+# install.packages("devtools")
+devtools::install_github("tem19/yaf")
+```

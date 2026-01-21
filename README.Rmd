@@ -16,3 +16,4 @@ output: github_document
 ```R
 # install.packages("devtools")
 devtools::install_github("tem19/yaf")
+```
