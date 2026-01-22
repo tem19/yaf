@@ -5,6 +5,26 @@
 #' @param date_to Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).
 #' @param fields Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).
 #' @param goals Список ID целей Метрики (необязательно).
+#' @param attribution Character vector. Модели атрибуции. Можно указать одну или несколько.
+#' По умолчанию используется "AUTO".
+#'
+#' Доступные модели:
+#' \itemize{
+#'   \item \code{FC} — Первый переход.
+#'   \item \code{LC} — Последний переход.
+#'   \item \code{LSC} — Последний значимый переход.
+#'   \item \code{LYDC} — Последний переход из Яндекс Директа.
+#'   \item \code{FCCD} — Первый переход кросс-девайс.
+#'   \item \code{LSCCD} — Последний значимый переход кросс-девайс.
+#'   \item \code{LYDCCD} — Последний переход из Яндекс Директа кросс-девайс.
+#'   \item \code{AUTO} — Автоматическая атрибуция.
+#' }
+#'
+#' @details
+#' Модели атрибуции работают только при указании аргумента \code{goals}.
+#' Если вы указываете несколько моделей, API вернет данные по каждой из них
+#' (строки в отчете могут дублироваться для разных моделей, если не добавлен срез AttributionModel).
+#'
 #' @param filter Строка для фильтрации данных.
 #' Должна быть оформлена в формате "Поле Оператор Значение".
 #'
@@ -93,7 +113,7 @@ yaf_get_report <- function(login,
   if(!is.null(goals)) {
     body$params$Goals <- as.list(as.numeric(goals))
     if(!is.null(atribution)) {
-      body$params$AttributionModels <- list(atribution)
+      body$params$AttributionModels <- as.list(atribution)
     } else
     body$params$AttributionModels <- list("AUTO")
   }
