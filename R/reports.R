@@ -34,6 +34,7 @@ yaf_get_report <- function(login,
                            date_to = Sys.Date()- 1,
                            fields = c("Date","Impressions","Clicks"),
                            goals = NULL,
+                           filter = NULL,
                            search_query_report = FALSE) {
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
