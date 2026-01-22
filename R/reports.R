@@ -56,6 +56,7 @@ yaf_get_report <- function(login,
                            date_to = Sys.Date()- 1,
                            fields = c("Date","Impressions","Clicks"),
                            goals = NULL,
+                           atribution = NULL,
                            filter = NULL,
                            search_query_report = FALSE) {
 
@@ -91,6 +92,9 @@ yaf_get_report <- function(login,
   # добавляем цели
   if(!is.null(goals)) {
     body$params$Goals <- as.list(as.numeric(goals))
+    if(!is.null(atribution)) {
+      body$params$AttributionModels <- list(atribution)
+    } else
     body$params$AttributionModels <- list("AUTO")
   }
 
