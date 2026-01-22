@@ -4,19 +4,44 @@
 \alias{yaf_get_report}
 \title{Получение статистики из Яндекс Директа}
 \usage{
-yaf_get_report(login, date_from, date_to, fields, goals = NULL)
+yaf_get_report(
+  login,
+  date_from = Sys.Date() - 7,
+  date_to = Sys.Date() - 1,
+  fields = c("Date", "Impressions", "Clicks"),
+  goals = NULL,
+  search_query_report = FALSE
+)
 }
 \arguments{
-\item{login}{Character. Логин в Яндексе.}
+\item{login}{Логин в Яндексе.}
 
-\item{date_from}{Character. Дата начала (ГГГГ-ММ-ДД).}
+\item{date_from}{Дата начала (ГГГГ-ММ-ДД). (необязательный, если не указать, установится дата неделю назад).}
 
-\item{date_to}{Character. Дата окончания (ГГГГ-ММ-ДД).}
+\item{date_to}{Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).}
 
-\item{fields}{Character vector. Список полей для выгрузки (обязательный).}
+\item{fields}{Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).}
 
-\item{goals}{Numeric vector. Список ID целей Метрики (необязательно).}
+\item{goals}{Список ID целей Метрики (необязательно).}
+
+\item{search_query_report}{Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).}
 }
 \description{
 Получение статистики из Яндекс Директа
+}
+\examples{
+\dontrun{
+# Базовая выгрузка
+report <- yaf_get_report(
+  login = "my_login",
+  fields = c("Date", "Clicks", "Cost")
+)
+
+# Выгрузка поисковых запросов
+queries <- yaf_get_report(
+  login = "my_login",
+  fields = c("Date", "Query", "Clicks"),
+  search_query_report = TRUE
+)
+}
 }

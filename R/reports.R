@@ -1,15 +1,34 @@
 #' Получение статистики из Яндекс Директа
 #'
-#' @param login Character. Логин в Яндексе.
-#' @param date_from Character. Дата начала (ГГГГ-ММ-ДД).
-#' @param date_to Character. Дата окончания (ГГГГ-ММ-ДД).
-#' @param fields Character vector. Список полей для выгрузки (обязательный).
-#' @param goals Numeric vector. Список ID целей Метрики (необязательно).
+#' @param login Логин в Яндексе.
+#' @param date_from Дата начала (ГГГГ-ММ-ДД). (необязательный, если не указать, установится дата неделю назад).
+#' @param date_to Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).
+#' @param fields Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).
+#' @param goals Список ID целей Метрики (необязательно).
+#' @param search_query_report Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).
 #' @export
 #' @importFrom httr2 request req_headers req_body_json req_perform resp_status resp_body_string
 #' @importFrom dplyr mutate across matches
 #' @importFrom tidyr replace_na
 #' @importFrom utils read.table flush.console
+#'
+
+#' @examples
+#' \dontrun{
+#' # Базовая выгрузка
+#' report <- yaf_get_report(
+#'   login = "my_login",
+#'   fields = c("Date", "Clicks", "Cost")
+#' )
+#'
+#' # Выгрузка поисковых запросов
+#' queries <- yaf_get_report(
+#'   login = "my_login",
+#'   fields = c("Date", "Query", "Clicks"),
+#'   search_query_report = TRUE
+#' )
+#' }
+
 yaf_get_report <- function(login,
                            date_from = Sys.Date()-7,
                            date_to = Sys.Date()- 1,
