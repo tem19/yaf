@@ -87,6 +87,3 @@ remotes::install_github("tem19/yaf")
       filter(total_clicks > 0)
 
     print(stats_summary)
-
-    ### Получени доступных полей отчета
-    Функция `yaf_fields_info` позволяет выгрузить таблицу со всеими полями, которы можно использовать при обращении к API.
