@@ -65,9 +65,39 @@ yaf_get_report <- function(login,
     )
   )
 
+  # добавляем цели
   if(!is.null(goals)) {
     body$params$Goals <- as.list(as.numeric(goals))
     body$params$AttributionModels <- list("AUTO")
+  }
+
+  # добавляем фильтр
+  if (!is.null(filter)) {
+    # Используем регулярку, чтобы делить по любому количеству пробелов
+    parts <- unlist(strsplit(trimws(filter), "\\s+"))
+
+    if (length(parts) < 3) stop("Ошибка: фильтр должен быть в формате 'Поле Оператор Значение'")
+
+    field <- parts[1]
+    operator <- parts[2]
+
+    # Собираем значения и чистим их
+    value_raw <- paste(parts[3:length(parts)], collapse = " ")
+    values <- unlist(strsplit(value_raw, ",\\s*"))
+
+    # Важно: API часто требует строки в Values, даже если это числа,
+    # но в JSON они должны уходить как массив.
+    # auto_unbox = TRUE в req_body_json может превратить массив из 1 элемента в строку.
+    # Чтобы этого избежать, используем I()
+    filter_list <- list(
+      list(
+        Field = field,
+        Operator = operator,
+        Values = as.list(values)
+      )
+    )
+
+    body$params$SelectionCriteria$Filter <- filter_list
   }
 
   # 3. Внутренняя функция для отправки запроса
