@@ -18,9 +18,9 @@ yaf_get_report <- function(login,
                            search_query_report = FALSE) {
 
   # Проверка обязательного аргумента fields
-  if (missing(fields) || is.null(fields)) {
-    stop("Ошибка: необходимо указать вектор полей в аргументе 'fields'.")
-  }
+  #if (missing(fields) || is.null(fields)) {
+  #  stop("Ошибка: необходимо указать вектор полей в аргументе 'fields'.")
+  #}
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
   if (search_query_report == TRUE) {
