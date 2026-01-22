@@ -5,14 +5,26 @@
 #' @param date_to Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).
 #' @param fields Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).
 #' @param goals Список ID целей Метрики (необязательно).
+#' @param filter Character. Строка для фильтрации данных.
+#' Должна быть оформлена в формате "Поле Оператор Значение".
+#'
+#' Разрешенные операторы:
+#' \itemize{
+#'   \item \code{EQUALS}, \code{NOT_EQUALS} — точное совпадение.
+#'   \item \code{IN}, \code{NOT_IN} — вхождение в список (значения через запятую).
+#'   \item \code{GREATER_THAN}, \code{LESS_THAN} — больше или меньше.
+#'   \item \code{STARTS_WITH}, \code{ENDS_WITH} — текстовые фильтры.
+#' }
+#' @details
+#' Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
+#' их следует разделять запятой. Пакет автоматически преобразует строку в
+#' JSON-структуру, необходимую для API Яндекс Директа.
 #' @param search_query_report Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).
 #' @export
 #' @importFrom httr2 request req_headers req_body_json req_perform resp_status resp_body_string
 #' @importFrom dplyr mutate across matches
 #' @importFrom tidyr replace_na
 #' @importFrom utils read.table flush.console
-#'
-
 #' @examples
 #' \dontrun{
 #' # Базовая выгрузка
@@ -27,6 +39,17 @@
 #'   fields = c("Date", "Query", "Clicks"),
 #'   search_query_report = TRUE
 #' )
+#' # Фильтр по названию кампании
+#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+#'                filter = "CampaignName STARTS_WITH Лето")
+#'
+#' # Фильтр по количеству кликов
+#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+#'                filter = "Clicks GREATER_THAN 10")
+#'
+#' # Фильтр по списку ID кампаний
+#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+#'                filter = "CampaignId IN 123456, 789012")
 #' }
 
 yaf_get_report <- function(login,
