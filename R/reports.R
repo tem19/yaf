@@ -13,7 +13,7 @@
 yaf_get_report <- function(login,
                            date_from,
                            date_to,
-                           fields,
+                           fields = c("Date","Impressions","Clicks"),
                            goals = NULL,
                            search_query_report = FALSE) {
 
