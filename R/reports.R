@@ -39,7 +39,7 @@
 #' @details
 #' Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
 #' их следует разделять запятой.
-#' @param search_query_report Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).
+#' @param search_query_report Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умолчанию выгрузится CUSTOM_REPORT).
 #' @export
 #' @importFrom httr2 request req_headers req_body_json req_perform resp_status resp_body_string
 #' @importFrom dplyr mutate across matches
