@@ -11,16 +11,11 @@
 #' @importFrom tidyr replace_na
 #' @importFrom utils read.table flush.console
 yaf_get_report <- function(login,
-                           date_from,
-                           date_to,
+                           date_from = Sys.Date()-7,
+                           date_to = Sys.Date()- 1,
                            fields = c("Date","Impressions","Clicks"),
                            goals = NULL,
                            search_query_report = FALSE) {
-
-  # Проверка обязательного аргумента fields
-  #if (missing(fields) || is.null(fields)) {
-  #  stop("Ошибка: необходимо указать вектор полей в аргументе 'fields'.")
-  #}
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
   if (search_query_report == TRUE) {
