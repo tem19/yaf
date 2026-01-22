@@ -10,6 +10,7 @@ yaf_get_report(
   date_to = Sys.Date() - 1,
   fields = c("Date", "Impressions", "Clicks"),
   goals = NULL,
+  filter = NULL,
   search_query_report = FALSE
 )
 }
@@ -24,10 +25,26 @@ yaf_get_report(
 
 \item{goals}{Список ID целей Метрики (необязательно).}
 
+\item{filter}{Character. Строка для фильтрации данных.
+Должна быть оформлена в формате "Поле Оператор Значение".
+
+Разрешенные операторы:
+\itemize{
+\item \code{EQUALS}, \code{NOT_EQUALS} — точное совпадение.
+\item \code{IN}, \code{NOT_IN} — вхождение в список (значения через запятую).
+\item \code{GREATER_THAN}, \code{LESS_THAN} — больше или меньше.
+\item \code{STARTS_WITH}, \code{ENDS_WITH} — текстовые фильтры.
+}}
+
 \item{search_query_report}{Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).}
 }
 \description{
 Получение статистики из Яндекс Директа
+}
+\details{
+Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
+их следует разделять запятой. Пакет автоматически преобразует строку в
+JSON-структуру, необходимую для API Яндекс Директа.
 }
 \examples{
 \dontrun{
@@ -43,5 +60,16 @@ queries <- yaf_get_report(
   fields = c("Date", "Query", "Clicks"),
   search_query_report = TRUE
 )
+# Фильтр по названию кампании
+yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+               filter = "CampaignName STARTS_WITH Лето")
+
+# Фильтр по количеству кликов
+yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+               filter = "Clicks GREATER_THAN 10")
+
+# Фильтр по списку ID кампаний
+yaf_get_report(login, fields = c("CampaignName", "Clicks"),
+               filter = "CampaignId IN 123456, 789012")
 }
 }
