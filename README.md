@@ -83,3 +83,8 @@ remotes::install_github("tem19/yaf")
 
 Функция `yaf_fields_info` позволяет выгрузить таблицу со всеими полями,
 которые можно использовать при обращении к API.
+
+### Поддержка
+
+По любым вопросам можно написать в группу в Телеграме:  
+[![](https://img.shields.io/badge/Telegram-Group-blue?logo=telegram)](https://t.me/yaf_group)
