@@ -12,7 +12,8 @@ yaf_get_report(
   goals = NULL,
   atribution = NULL,
   filter = NULL,
-  search_query_report = FALSE
+  search_query_report = FALSE,
+  numeric_fields_as_numeric = TRUE
 )
 }
 \arguments{
@@ -38,6 +39,8 @@ yaf_get_report(
 }}
 
 \item{search_query_report}{Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умоляанию выгрузится CUSTOM_REPORT).}
+
+\item{numeric_fields_as_numeric}{Не менять тип полей. По-умолчанию стоит TRUE. Чтобы получить значения без преобразований, используйте FALSE.}
 
 \item{attribution}{Модели атрибуции. Можно указать одну или несколько.
 По умолчанию используется "AUTO".

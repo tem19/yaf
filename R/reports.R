@@ -35,6 +35,7 @@
 #'   \item \code{GREATER_THAN}, \code{LESS_THAN} — больше или меньше.
 #'   \item \code{STARTS_WITH}, \code{ENDS_WITH} — текстовые фильтры.
 #' }
+#' @param numeric_fields_as_numeric Не менять тип полей. По-умолчанию стоит TRUE. Чтобы получить значения без преобразований, используйте FALSE.
 #' @details
 #' Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
 #' их следует разделять запятой.
@@ -78,7 +79,8 @@ yaf_get_report <- function(login,
                            goals = NULL,
                            atribution = NULL,
                            filter = NULL,
-                           search_query_report = FALSE) {
+                           search_query_report = FALSE,
+                           numeric_fields_as_numeric = TRUE) {
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
   if (search_query_report == TRUE) {
@@ -195,13 +197,17 @@ yaf_get_report <- function(login,
   )
 
   # 6. Приведение числовых типов
-  numeric_fields <- "Conversions_|Clicks|Impressions|Cost|Bounces|Profit|Revenue|Sessions|AvgImpressionPosition"
 
-  result <- result |>
-    dplyr::mutate(dplyr::across(
-      dplyr::matches(numeric_fields),
-      ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))
-    ))
+  if (numeric_fields_as_numeric == TRUE) {
+    numeric_fields <- "Conversions_|Clicks|Impressions|Cost|Bounces|Profit|Revenue|Sessions|AvgImpressionPosition"
+
+    result <- result |>
+      dplyr::mutate(dplyr::across(
+        dplyr::matches(numeric_fields),
+        ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))
+      ))
+  }
+
 
   return(result)
 }
