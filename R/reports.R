@@ -82,7 +82,7 @@ yaf_get_report <- function(login,
                            search_query_report = FALSE,
                            numeric_fields_as_numeric = TRUE) {
 
-  # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_REPORT"
+  # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_PERFORMANCE_REPORT"
   if (search_query_report == TRUE) {
     ReportType <- "SEARCH_QUERY_PERFORMANCE_REPORT"
   } else {
