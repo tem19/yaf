@@ -6,6 +6,8 @@
 #'
 #' @return A data frame с ID кампаний, их названиями, статусами и типами.
 #' @export
+#' @importFrom httr2 request req_headers req_body_json req_perform resp_status resp_body_json resp_body_string
+#' @importFrom purrr map_dfr
 #'
 #' @examples
 #' \dontrun{
