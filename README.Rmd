@@ -56,18 +56,18 @@ remotes::install_github("tem19/yaf")
 Пример:
 ```
 library(yaf)
-yaf_get_report("your_yandex_login")
+yaf_get_report(login = "your_yandex_login")
 ```
 
 ### Необязательные параметры
-`date_from` - начальная дата в выгрузке в формате YYYY-MM-DD
-`date_to` - конечная дата в вугрузке в формате YYYY-MM-DD
-fields
-goals
-atribution
-filter
-search_query_report
-numeric_fields_as_numeric
+`date_from` - начальная дата в выгрузке в формате YYYY-MM-DD  
+`date_to` - конечная дата в вугрузке в формате YYYY-MM-DD  
+`fields` - вектор с перечислением полей отчета  
+`goals` - вектор с номерами целей Метрики, которые нужно выгрузить в качестве конверсий  
+`atribution` - модель атрибуции, одна либо несколько  
+`filter` - фильтрация данных в отчете  
+`search_query_report` - логическое значение, по умолчанию - `FALSE`; если `TRUE`, то тип отчета меняется на SEARCH_QUERY_REPORT (предназначен для выгрузки статистики по поисковым запросам)  
+`numeric_fields_as_numeric` - логическое значение, по умолчанию - `FALSE`, если `TRUE`, то для числовых значений не будет производится корректировка типа.
 
 ### Пример использования
 
