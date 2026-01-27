@@ -71,6 +71,12 @@ remotes::install_github("tem19/yaf")
     library(yaf)
     yaf_get_report("your_yandex_login")
 
+### Необязательные параметры
+
+`date_from` - начальная дата в выгрузке в формате YYYY-MM-DD `date_to` -
+конечная дата в вугрузке в формате YYYY-MM-DD fields goals atribution
+filter search_query_report numeric_fields_as_numeric
+
 ### Пример использования
 
 Пример скрипта для выгрузки отчета:
