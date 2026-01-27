@@ -66,6 +66,11 @@ remotes::install_github("tem19/yaf")
 таком случае будут выгружены поля Date, Impressions и Clicks за 7
 последних дней.
 
+Пример:
+
+    library(yaf)
+    yaf_get_report("your_yandex_login")
+
 ### Пример использования
 
 Пример скрипта для выгрузки отчета:
