@@ -92,8 +92,8 @@ remotes::install_github("tem19/yaf")
 `filter` - фильтрация данных в отчете. Функция в качестве фильтра
 ожидает строку в формате “ПОЛЕ ОПЕРАТОР ЗНАЧЕНИЕ”. Подробнее о
 операторах и полях, к которым они применимы, можно прочитать в справке:
-<https://yandex.ru/dev/direct/doc/ru/filters>. Пример:  
-`CampaignId IN 123456789, 987654321`, `Clicks GREATER_THAN 100`  
+<https://yandex.ru/dev/direct/doc/ru/filters>. Примеры:  
+- `CampaignId IN 123456789, 987654321`, - `Clicks GREATER_THAN 100`  
 `search_query_report` - логическое значение, по умолчанию - `FALSE`;
 если `TRUE`, то тип отчета меняется на `SEARCH_QUERY_PERFORMANCE_REPORT`
 (предназначен для выгрузки статистики по поисковым запросам)  
