@@ -121,13 +121,16 @@ yaf_get_report <- function(login,
       ))
   }
 
-  # 7. Автоматическое сохранение в папку /reports
+  # 7. Финальное сообщение
+  rows_count <- nrow(result)
+  cat("Процесс завершен. Выгружено строк:", rows_count, "\n")
+
+  # 8. Автоматическое сохранение в папку /reports
   if (save_report == TRUE) {
     if (!dir.exists("reports")) {
       dir.create("reports")
     }
 
-    # Имя файла без логина: report_ГГГГММДД_ЧЧММСС.csv
     file_name <- paste0("report_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
     full_path <- file.path("reports", file_name)
 
