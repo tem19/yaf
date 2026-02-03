@@ -3,9 +3,10 @@
 #' @param login Логин в Яндексе.
 #' @param date_from Дата начала (ГГГГ-ММ-ДД).
 #' @param date_to Дата окончания (ГГГГ-ММ-ДД).
+#' @param date_range_type Пресет периода (YESTERDAY, TODAY, LAST_7_DAYS, LAST_30_DAYS, LAST_MONTH).
 #' @param fields Список полей для выгрузки.
 #' @param goals Список ID целей Метрики (необязательно).
-#' @param attribution Модели атрибуции.
+#' @param atribution Модели атрибуции.
 #' @param filter Строка для фильтрации данных.
 #' @param numeric_fields_as_numeric Не менять тип полей.
 #' @param search_query_report TRUE для отчета по поисковым запросам.
@@ -14,16 +15,17 @@
 #'
 #' @export
 yaf_get_report <- function(login,
-                           date_from = Sys.Date()-7,
-                           date_to = Sys.Date()- 1,
-                           fields = c("Date","Impressions","Clicks"),
-                           goals = NULL,
-                           atribution = NULL,
-                           filter = NULL,
-                           search_query_report = FALSE,
-                           numeric_fields_as_numeric = TRUE,
-                           include_vat = TRUE,
-                           save_report = FALSE) {
+                            date_from = Sys.Date()-7,
+                            date_to = Sys.Date()- 1,
+                            date_range_type = NULL,
+                            fields = c("Date","Impressions","Clicks"),
+                            goals = NULL,
+                            atribution = NULL,
+                            filter = NULL,
+                            search_query_report = FALSE,
+                            numeric_fields_as_numeric = TRUE,
+                            include_vat = TRUE,
+                            save_report = FALSE) {
 
   # Определение типа отчета
   ReportType <- if (search_query_report) "SEARCH_QUERY_PERFORMANCE_REPORT" else "CUSTOM_REPORT"
@@ -31,18 +33,28 @@ yaf_get_report <- function(login,
   # 1. Получаем токен
   token <- get_yaf_token(login)
 
-  # 2. Формируем тело запроса
+  # 2. Логика определения периода
+  if (!is.null(date_range_type)) {
+    PeriodType <- date_range_type
+    # Создаем ПУСТОЙ ИМЕНОВАННЫЙ список. В JSON это станет {}
+    selection_criteria <- setNames(list(), character(0))
+  } else {
+    PeriodType <- "CUSTOM_DATE"
+    selection_criteria <- list(
+      DateFrom = as.character(date_from),
+      DateTo = as.character(date_to)
+    )
+  }
+
+  # 3. Формируем тело запроса
   body <- list(
     params = list(
-      SelectionCriteria = list(
-        DateFrom = as.character(date_from),
-        DateTo = as.character(date_to)
-      ),
+      SelectionCriteria = selection_criteria,
       FieldNames = fields,
       Page = list(Limit = 2000000L),
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
       ReportType = ReportType,
-      DateRangeType = "CUSTOM_DATE",
+      DateRangeType = PeriodType,
       Format = "TSV"
     )
   )
@@ -54,6 +66,7 @@ yaf_get_report <- function(login,
     body$params$AttributionModels <- if(!is.null(atribution)) as.list(atribution) else list("AUTO")
   }
 
+  # 4. Обработка фильтра
   if (!is.null(filter)) {
     parts <- unlist(strsplit(trimws(filter), "\\s+"))
     if (length(parts) < 3) stop("Ошибка: фильтр должен быть в формате 'Поле Оператор Значение'")
@@ -63,10 +76,11 @@ yaf_get_report <- function(login,
       Operator = parts[2],
       Values = as.list(unlist(strsplit(paste(parts[3:length(parts)], collapse = " "), ",\\s*")))
     ))
+    # Заменяем пустой критерий на критерий с фильтром
     body$params$SelectionCriteria$Filter <- filter_list
   }
 
-  # 3. Внутренняя функция для отправки запроса
+  # 5. Внутренняя функция для отправки
   send_request <- function() {
     httr2::request("https://api.direct.yandex.com/json/v5/reports") |>
       httr2::req_headers(
@@ -81,8 +95,7 @@ yaf_get_report <- function(login,
       httr2::req_perform()
   }
 
-  # 4. Цикл ожидания отчета
-  cat("Запрос отправлен. Ожидание формирования отчета для:", login, "\n")
+  cat("Запрос отправлен. Период:", PeriodType, "| Логин:", login, "\n")
   start_time <- proc.time()
 
   req <- send_request()
@@ -102,38 +115,21 @@ yaf_get_report <- function(login,
   }
 
   cat("\nОтчет получен. Обработка данных...\n")
-
-  # 5. Чтение данных
   tsv <- httr2::resp_body_string(req)
-  result <- utils::read.table(
-    text = tsv, header = TRUE, sep = "\t",
-    stringsAsFactors = FALSE, quote = "",
-    comment.char = "", encoding = "UTF-8"
-  )
+  result <- utils::read.table(text = tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE, quote = "", comment.char = "", encoding = "UTF-8")
 
-  # 6. Приведение числовых типов
-  if (numeric_fields_as_numeric == TRUE) {
+  if (numeric_fields_as_numeric) {
     numeric_fields <- "Conversions_|Clicks|Impressions|Cost|Bounces|Profit|Revenue|Sessions|AvgImpressionPosition"
-    result <- result |>
-      dplyr::mutate(dplyr::across(
-        dplyr::matches(numeric_fields),
-        ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))
-      ))
+    result <- result |> dplyr::mutate(dplyr::across(dplyr::matches(numeric_fields), ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))))
   }
 
-  # 7. Финальное сообщение
   rows_count <- nrow(result)
   cat("Процесс завершен. Выгружено строк:", rows_count, "\n")
 
-  # 8. Автоматическое сохранение в папку /reports
-  if (save_report == TRUE) {
-    if (!dir.exists("reports")) {
-      dir.create("reports")
-    }
-
+  if (save_report) {
+    if (!dir.exists("reports")) dir.create("reports")
     file_name <- paste0("report_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
     full_path <- file.path("reports", file_name)
-
     utils::write.csv2(result, file = full_path, row.names = FALSE, fileEncoding = "UTF-8")
     cat("Файл успешно сохранен в подпапку: ", full_path, "\n")
   }
