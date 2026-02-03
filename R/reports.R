@@ -80,7 +80,8 @@ yaf_get_report <- function(login,
                            atribution = NULL,
                            filter = NULL,
                            search_query_report = FALSE,
-                           numeric_fields_as_numeric = TRUE) {
+                           numeric_fields_as_numeric = TRUE,
+                           include_vat = TRUE) {
 
   # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_PERFORMANCE_REPORT"
   if (search_query_report == TRUE) {
@@ -106,10 +107,17 @@ yaf_get_report <- function(login,
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
       ReportType = ReportType,
       DateRangeType = "CUSTOM_DATE",
-      Format = "TSV",
-      IncludeVAT = "YES"
+      Format = "TSV"
     )
   )
+
+  # Убираем или добавляем НДС
+  if(include_vat==FALSE) {
+    body$params$IncludeVAT <- "NO"
+  } else {
+    body$params$IncludeVAT <- "YES"
+  }
+
 
   # добавляем цели
   if(!is.null(goals)) {
