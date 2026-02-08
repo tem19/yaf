@@ -1,155 +1,86 @@
 #' Получение статистики из Яндекс Директа
 #'
 #' @param login Логин в Яндексе.
-#' @param date_from Дата начала (ГГГГ-ММ-ДД). (необязательный, если не указать, установится дата неделю назад).
-#' @param date_to Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).
-#' @param fields Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).
+#' @param date_from Дата начала (ГГГГ-ММ-ДД).
+#' @param date_to Дата окончания (ГГГГ-ММ-ДД).
+#' @param date_range_type Пресет периода (YESTERDAY, TODAY, LAST_7_DAYS, LAST_30_DAYS, LAST_MONTH).
+#' @param fields Список полей для выгрузки.
 #' @param goals Список ID целей Метрики (необязательно).
-#' @param attribution Модели атрибуции. Можно указать одну или несколько.
-#' По умолчанию используется "AUTO".
-#'
-#' Доступные модели:
-#' \itemize{
-#'   \item \code{FC} — Первый переход.
-#'   \item \code{LC} — Последний переход.
-#'   \item \code{LSC} — Последний значимый переход.
-#'   \item \code{LYDC} — Последний переход из Яндекс Директа.
-#'   \item \code{FCCD} — Первый переход кросс-девайс.
-#'   \item \code{LSCCD} — Последний значимый переход кросс-девайс.
-#'   \item \code{LYDCCD} — Последний переход из Яндекс Директа кросс-девайс.
-#'   \item \code{AUTO} — Автоматическая атрибуция.
-#' }
-#'
-#' @details
-#' Модели атрибуции работают только при указании аргумента \code{goals}.
-#' Если вы указываете несколько моделей, API вернет данные по каждой из них
-#' (строки в отчете могут дублироваться для разных моделей, если не добавлен срез AttributionModel).
-#'
+#' @param atribution Модели атрибуции.
 #' @param filter Строка для фильтрации данных.
-#' Должна быть оформлена в формате "Поле Оператор Значение".
+#' @param numeric_fields_as_numeric Не менять тип полей.
+#' @param search_query_report TRUE для отчета по поисковым запросам.
+#' @param include_vat Включать ли НДС (YES/NO).
+#' @param save_report Логическое значение. Если TRUE, сохраняет CSV в папку /reports.
 #'
-#' Разрешенные операторы:
-#' \itemize{
-#'   \item \code{EQUALS}, \code{NOT_EQUALS} — точное совпадение.
-#'   \item \code{IN}, \code{NOT_IN} — вхождение в список (значения через запятую).
-#'   \item \code{GREATER_THAN}, \code{LESS_THAN} — больше или меньше.
-#'   \item \code{STARTS_WITH}, \code{ENDS_WITH} — текстовые фильтры.
-#' }
-#' @param numeric_fields_as_numeric Не менять тип полей. По-умолчанию стоит TRUE. Чтобы получить значения без преобразований, используйте FALSE.
-#' @details
-#' Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
-#' их следует разделять запятой.
-#' @param search_query_report Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умолчанию выгрузится CUSTOM_REPORT).
 #' @export
-#' @importFrom httr2 request req_headers req_body_json req_perform resp_status resp_body_string
-#' @importFrom dplyr mutate across matches
-#' @importFrom tidyr replace_na
-#' @importFrom utils read.table flush.console
-#' @examples
-#' \dontrun{
-#' # Базовая выгрузка
-#' report <- yaf_get_report(
-#'   login = "my_login",
-#'   fields = c("Date", "Clicks", "Cost")
-#' )
-#'
-#' # Выгрузка поисковых запросов
-#' queries <- yaf_get_report(
-#'   login = "my_login",
-#'   fields = c("Date", "Query", "Clicks"),
-#'   search_query_report = TRUE
-#' )
-#' # Фильтр по названию кампании
-#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-#'                filter = "CampaignName STARTS_WITH Лето")
-#'
-#' # Фильтр по количеству кликов
-#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-#'                filter = "Clicks GREATER_THAN 10")
-#'
-#' # Фильтр по списку ID кампаний
-#' yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-#'                filter = "CampaignId IN 123456, 789012")
-#' }
-
 yaf_get_report <- function(login,
-                           date_from = Sys.Date()-7,
-                           date_to = Sys.Date()- 1,
-                           fields = c("Date","Impressions","Clicks"),
-                           goals = NULL,
-                           atribution = NULL,
-                           filter = NULL,
-                           search_query_report = FALSE,
-                           numeric_fields_as_numeric = TRUE) {
+                            date_from = Sys.Date()-7,
+                            date_to = Sys.Date()- 1,
+                            date_range_type = NULL,
+                            fields = c("Date","Impressions","Clicks"),
+                            goals = NULL,
+                            atribution = NULL,
+                            filter = NULL,
+                            search_query_report = FALSE,
+                            numeric_fields_as_numeric = TRUE,
+                            include_vat = TRUE,
+                            save_report = FALSE) {
 
-  # если search_query_report = TRUE, то меняем тип отчета на "SEARCH_QUERY_PERFORMANCE_REPORT"
-  if (search_query_report == TRUE) {
-    ReportType <- "SEARCH_QUERY_PERFORMANCE_REPORT"
-  } else {
-    ReportType <- "CUSTOM_REPORT"
-  }
+  # Определение типа отчета
+  ReportType <- if (search_query_report) "SEARCH_QUERY_PERFORMANCE_REPORT" else "CUSTOM_REPORT"
 
   # 1. Получаем токен
   token <- get_yaf_token(login)
 
-  # 2. Формируем тело запроса
+  # 2. Логика определения периода
+  if (!is.null(date_range_type)) {
+    PeriodType <- date_range_type
+    # Создаем ПУСТОЙ ИМЕНОВАННЫЙ список. В JSON это станет {}
+    selection_criteria <- setNames(list(), character(0))
+  } else {
+    PeriodType <- "CUSTOM_DATE"
+    selection_criteria <- list(
+      DateFrom = as.character(date_from),
+      DateTo = as.character(date_to)
+    )
+  }
+
+  # 3. Формируем тело запроса
   body <- list(
     params = list(
-      SelectionCriteria = list(
-        DateFrom = date_from,
-        DateTo = date_to
-      ),
+      SelectionCriteria = selection_criteria,
       FieldNames = fields,
-      Page = list(
-        Limit = 2000000L
-      ),
+      Page = list(Limit = 2000000L),
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
       ReportType = ReportType,
-      DateRangeType = "CUSTOM_DATE",
-      Format = "TSV",
-      IncludeVAT = "YES"
+      DateRangeType = PeriodType,
+      Format = "TSV"
     )
   )
 
-  # добавляем цели
+  body$params$IncludeVAT <- if(include_vat) "YES" else "NO"
+
   if(!is.null(goals)) {
     body$params$Goals <- as.list(as.numeric(goals))
-    if(!is.null(atribution)) {
-      body$params$AttributionModels <- as.list(atribution)
-    } else
-    body$params$AttributionModels <- list("AUTO")
+    body$params$AttributionModels <- if(!is.null(atribution)) as.list(atribution) else list("AUTO")
   }
 
-  # добавляем фильтр
+  # 4. Обработка фильтра
   if (!is.null(filter)) {
-    # Используем регулярку, чтобы делить по любому количеству пробелов
     parts <- unlist(strsplit(trimws(filter), "\\s+"))
-
     if (length(parts) < 3) stop("Ошибка: фильтр должен быть в формате 'Поле Оператор Значение'")
 
-    field <- parts[1]
-    operator <- parts[2]
-
-    # Собираем значения и чистим их
-    value_raw <- paste(parts[3:length(parts)], collapse = " ")
-    values <- unlist(strsplit(value_raw, ",\\s*"))
-
-    # Важно: API часто требует строки в Values, даже если это числа,
-    # но в JSON они должны уходить как массив.
-    # auto_unbox = TRUE в req_body_json может превратить массив из 1 элемента в строку.
-    # Чтобы этого избежать, используем I()
-    filter_list <- list(
-      list(
-        Field = field,
-        Operator = operator,
-        Values = as.list(values)
-      )
-    )
-
+    filter_list <- list(list(
+      Field = parts[1],
+      Operator = parts[2],
+      Values = as.list(unlist(strsplit(paste(parts[3:length(parts)], collapse = " "), ",\\s*")))
+    ))
+    # Заменяем пустой критерий на критерий с фильтром
     body$params$SelectionCriteria$Filter <- filter_list
   }
 
-  # 3. Внутренняя функция для отправки запроса
+  # 5. Внутренняя функция для отправки
   send_request <- function() {
     httr2::request("https://api.direct.yandex.com/json/v5/reports") |>
       httr2::req_headers(
@@ -164,50 +95,44 @@ yaf_get_report <- function(login,
       httr2::req_perform()
   }
 
-  # 4. Цикл ожидания отчета
-  message("Запрос отправлен. Ожидание формирования отчета для: ", login)
+  cat("Запрос отправлен. Период:", PeriodType, "| Логин:", login, "\n")
   start_time <- proc.time()
 
   req <- send_request()
   resp_status <- httr2::resp_status(req)
 
   while(resp_status != 200) {
+    if (resp_status %in% c(400, 401, 500)) {
+      stop(paste("Ошибка API:", resp_status, httr2::resp_body_string(req)))
+    }
     Sys.sleep(2)
     req <- send_request()
     resp_status <- httr2::resp_status(req)
 
     elapsed <- round((proc.time() - start_time)[["elapsed"]], 1)
-    cat("\rПрошло времени:", elapsed, "сек. | Статус:", resp_status, "   ")
+    cat("\rПрошло времени:", elapsed, "сек. | Статус:", resp_status, "    ")
     utils::flush.console()
   }
 
   cat("\nОтчет получен. Обработка данных...\n")
-
-  # 5. Чтение данных
   tsv <- httr2::resp_body_string(req)
+  result <- utils::read.table(text = tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE, quote = "", comment.char = "", encoding = "UTF-8")
 
-  result <- utils::read.table(
-    text = tsv,
-    header = TRUE,
-    sep = "\t",
-    stringsAsFactors = FALSE,
-    quote = "",
-    comment.char = "",
-    encoding = "UTF-8"
-  )
-
-  # 6. Приведение числовых типов
-
-  if (numeric_fields_as_numeric == TRUE) {
+  if (numeric_fields_as_numeric) {
     numeric_fields <- "Conversions_|Clicks|Impressions|Cost|Bounces|Profit|Revenue|Sessions|AvgImpressionPosition"
-
-    result <- result |>
-      dplyr::mutate(dplyr::across(
-        dplyr::matches(numeric_fields),
-        ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))
-      ))
+    result <- result |> dplyr::mutate(dplyr::across(dplyr::matches(numeric_fields), ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))))
   }
 
+  rows_count <- nrow(result)
+  cat("Процесс завершен. Выгружено строк:", rows_count, "\n")
+
+  if (save_report) {
+    if (!dir.exists("reports")) dir.create("reports")
+    file_name <- paste0("report_", format(Sys.time(), "%Y%m%d_%H%M%S"), ".csv")
+    full_path <- file.path("reports", file_name)
+    utils::write.csv2(result, file = full_path, row.names = FALSE, fileEncoding = "UTF-8")
+    cat("Файл успешно сохранен в подпапку: ", full_path, "\n")
+  }
 
   return(result)
 }

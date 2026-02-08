@@ -33,7 +33,8 @@ yaf_get_campaigns <- function(login) {
           Statuses = list("ACCEPTED", "DRAFT", "MODERATION", "REJECTED")
         ),
         FieldNames = c("Id", "Name", "Status", "State", "Type", "StartDate", "Statistics"),
-        UnifiedCampaignFieldNames = c("BiddingStrategy", "AttributionModel")
+        #TextCampaignFieldNames = c("BiddingStrategy", "AttributionModel","TrackingParams"),
+        UnifiedCampaignFieldNames = c("BiddingStrategy", "AttributionModel","TrackingParams")
       )
     )) |>
     httr2::req_perform()
