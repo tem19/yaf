@@ -8,90 +8,42 @@ yaf_get_report(
   login,
   date_from = Sys.Date() - 7,
   date_to = Sys.Date() - 1,
+  date_range_type = NULL,
   fields = c("Date", "Impressions", "Clicks"),
   goals = NULL,
   atribution = NULL,
   filter = NULL,
   search_query_report = FALSE,
-  numeric_fields_as_numeric = TRUE
+  numeric_fields_as_numeric = TRUE,
+  include_vat = TRUE,
+  save_report = FALSE
 )
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
 
-\item{date_from}{Дата начала (ГГГГ-ММ-ДД). (необязательный, если не указать, установится дата неделю назад).}
+\item{date_from}{Дата начала (ГГГГ-ММ-ДД).}
 
-\item{date_to}{Дата окончания (ГГГГ-ММ-ДД). (необязательный, если не указать, установится вчрешня дата).}
+\item{date_to}{Дата окончания (ГГГГ-ММ-ДД).}
 
-\item{fields}{Список полей для выгрузки (необязательный, если не указать, выгрузятся поля Date, Impressions, Clicks).}
+\item{date_range_type}{Пресет периода (YESTERDAY, TODAY, LAST_7_DAYS, LAST_30_DAYS, LAST_MONTH).}
+
+\item{fields}{Список полей для выгрузки.}
 
 \item{goals}{Список ID целей Метрики (необязательно).}
 
-\item{filter}{Строка для фильтрации данных.
-Должна быть оформлена в формате "Поле Оператор Значение".
+\item{atribution}{Модели атрибуции.}
 
-Разрешенные операторы:
-\itemize{
-\item \code{EQUALS}, \code{NOT_EQUALS} — точное совпадение.
-\item \code{IN}, \code{NOT_IN} — вхождение в список (значения через запятую).
-\item \code{GREATER_THAN}, \code{LESS_THAN} — больше или меньше.
-\item \code{STARTS_WITH}, \code{ENDS_WITH} — текстовые фильтры.
-}}
+\item{filter}{Строка для фильтрации данных.}
 
-\item{search_query_report}{Логическое значение TRUE означает, что запрашивается отчет по поисковым запросам. (необязательно, по-умолчанию выгрузится CUSTOM_REPORT).}
+\item{search_query_report}{TRUE для отчета по поисковым запросам.}
 
-\item{numeric_fields_as_numeric}{Не менять тип полей. По-умолчанию стоит TRUE. Чтобы получить значения без преобразований, используйте FALSE.}
+\item{numeric_fields_as_numeric}{Не менять тип полей.}
 
-\item{attribution}{Модели атрибуции. Можно указать одну или несколько.
-По умолчанию используется "AUTO".
+\item{include_vat}{Включать ли НДС (YES/NO).}
 
-Доступные модели:
-\itemize{
-\item \code{FC} — Первый переход.
-\item \code{LC} — Последний переход.
-\item \code{LSC} — Последний значимый переход.
-\item \code{LYDC} — Последний переход из Яндекс Директа.
-\item \code{FCCD} — Первый переход кросс-девайс.
-\item \code{LSCCD} — Последний значимый переход кросс-девайс.
-\item \code{LYDCCD} — Последний переход из Яндекс Директа кросс-девайс.
-\item \code{AUTO} — Автоматическая атрибуция.
-}}
+\item{save_report}{Логическое значение. Если TRUE, сохраняет CSV в папку /reports.}
 }
 \description{
 Получение статистики из Яндекс Директа
-}
-\details{
-Модели атрибуции работают только при указании аргумента \code{goals}.
-Если вы указываете несколько моделей, API вернет данные по каждой из них
-(строки в отчете могут дублироваться для разных моделей, если не добавлен срез AttributionModel).
-
-Фильтр передается в виде одной строки. Если значений несколько (для оператора IN),
-их следует разделять запятой.
-}
-\examples{
-\dontrun{
-# Базовая выгрузка
-report <- yaf_get_report(
-  login = "my_login",
-  fields = c("Date", "Clicks", "Cost")
-)
-
-# Выгрузка поисковых запросов
-queries <- yaf_get_report(
-  login = "my_login",
-  fields = c("Date", "Query", "Clicks"),
-  search_query_report = TRUE
-)
-# Фильтр по названию кампании
-yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-               filter = "CampaignName STARTS_WITH Лето")
-
-# Фильтр по количеству кликов
-yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-               filter = "Clicks GREATER_THAN 10")
-
-# Фильтр по списку ID кампаний
-yaf_get_report(login, fields = c("CampaignName", "Clicks"),
-               filter = "CampaignId IN 123456, 789012")
-}
 }
