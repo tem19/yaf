@@ -8,24 +8,24 @@
 #' @param goals Список ID целей Метрики (необязательно).
 #' @param atribution Модели атрибуции.
 #' @param filter Строка для фильтрации данных.
-#' @param numeric_fields_as_numeric Не менять тип полей.
+#' @param numeric_fields_as_numeric Менять ли тип числовых полей на numeric.
 #' @param search_query_report TRUE для отчета по поисковым запросам.
 #' @param include_vat Включать ли НДС (YES/NO).
 #' @param save_report Логическое значение. Если TRUE, сохраняет CSV в папку /reports.
 #'
 #' @export
 yaf_get_report <- function(login,
-                            date_from = Sys.Date()-7,
-                            date_to = Sys.Date()- 1,
-                            date_range_type = NULL,
-                            fields = c("Date","Impressions","Clicks"),
-                            goals = NULL,
-                            atribution = NULL,
-                            filter = NULL,
-                            search_query_report = FALSE,
-                            numeric_fields_as_numeric = TRUE,
-                            include_vat = TRUE,
-                            save_report = FALSE) {
+                           date_from = Sys.Date()-7,
+                           date_to = Sys.Date()- 1,
+                           date_range_type = NULL,
+                           fields = c("Date","Impressions","Clicks"),
+                           goals = NULL,
+                           atribution = NULL,
+                           filter = NULL,
+                           search_query_report = FALSE,
+                           numeric_fields_as_numeric = TRUE,
+                           include_vat = TRUE,
+                           save_report = FALSE) {
 
   # Определение типа отчета
   ReportType <- if (search_query_report) "SEARCH_QUERY_PERFORMANCE_REPORT" else "CUSTOM_REPORT"
@@ -36,7 +36,6 @@ yaf_get_report <- function(login,
   # 2. Логика определения периода
   if (!is.null(date_range_type)) {
     PeriodType <- date_range_type
-    # Создаем ПУСТОЙ ИМЕНОВАННЫЙ список. В JSON это станет {}
     selection_criteria <- setNames(list(), character(0))
   } else {
     PeriodType <- "CUSTOM_DATE"
@@ -76,7 +75,6 @@ yaf_get_report <- function(login,
       Operator = parts[2],
       Values = as.list(unlist(strsplit(paste(parts[3:length(parts)], collapse = " "), ",\\s*")))
     ))
-    # Заменяем пустой критерий на критерий с фильтром
     body$params$SelectionCriteria$Filter <- filter_list
   }
 
@@ -118,9 +116,22 @@ yaf_get_report <- function(login,
   tsv <- httr2::resp_body_string(req)
   result <- utils::read.table(text = tsv, header = TRUE, sep = "\t", stringsAsFactors = FALSE, quote = "", comment.char = "", encoding = "UTF-8")
 
+  # ПРЕОБРАЗОВАНИЕ ТИПОВ ДАННЫХ
+
+  # Числа
   if (numeric_fields_as_numeric) {
     numeric_fields <- "Conversions_|Clicks|Impressions|Cost|Bounces|Profit|Revenue|Sessions|AvgImpressionPosition"
-    result <- result |> dplyr::mutate(dplyr::across(dplyr::matches(numeric_fields), ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))))
+    result <- result |>
+      dplyr::mutate(dplyr::across(dplyr::matches(numeric_fields), ~ suppressWarnings(tidyr::replace_na(as.numeric(.), 0))))
+  }
+
+  # Даты (Date, Month, Quarter, Year)
+  # Яндекс присылает Month как "ГГГГ-ММ-01", Quarter как "ГГГГ-КВ-01", Year как "ГГГГ-01-01"
+  date_cols <- intersect(names(result), c("Date", "Month", "Quarter", "Year"))
+
+  if (length(date_cols) > 0) {
+    result <- result |>
+      dplyr::mutate(dplyr::across(dplyr::all_of(date_cols), ~ as.Date(.)))
   }
 
   rows_count <- nrow(result)
