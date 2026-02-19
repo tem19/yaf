@@ -38,7 +38,7 @@ yaf_get_report(
 
 \item{search_query_report}{TRUE для отчета по поисковым запросам.}
 
-\item{numeric_fields_as_numeric}{Не менять тип полей.}
+\item{numeric_fields_as_numeric}{Менять ли тип числовых полей на numeric.}
 
 \item{include_vat}{Включать ли НДС (YES/NO).}
 
