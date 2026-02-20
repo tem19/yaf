@@ -11,12 +11,14 @@ yaf_get_report(
   date_range_type = NULL,
   fields = c("Date", "Impressions", "Clicks"),
   goals = NULL,
-  atribution = NULL,
+  attribution = NULL,
   filter = NULL,
   search_query_report = FALSE,
   numeric_fields_as_numeric = TRUE,
   include_vat = TRUE,
-  save_report = FALSE
+  save_report = FALSE,
+  save_dir = "reports",
+  max_tries = 60L
 )
 }
 \arguments{
@@ -26,13 +28,13 @@ yaf_get_report(
 
 \item{date_to}{Дата окончания (ГГГГ-ММ-ДД).}
 
-\item{date_range_type}{Пресет периода (YESTERDAY, TODAY, LAST_7_DAYS, LAST_30_DAYS, LAST_MONTH).}
+\item{date_range_type}{Пресет периода (например: TODAY, YESTERDAY, LAST_7_DAYS, LAST_30_DAYS, LAST_MONTH, ALL_TIME).}
 
 \item{fields}{Список полей для выгрузки.}
 
 \item{goals}{Список ID целей Метрики (необязательно).}
 
-\item{atribution}{Модели атрибуции.}
+\item{attribution}{Модели атрибуции (FC, LC, LSC, LYDC, FCCD, LSCCD, LYDCCD, AUTO).}
 
 \item{filter}{Строка для фильтрации данных.}
 
@@ -40,9 +42,13 @@ yaf_get_report(
 
 \item{numeric_fields_as_numeric}{Менять ли тип числовых полей на numeric.}
 
-\item{include_vat}{Включать ли НДС (YES/NO).}
+\item{include_vat}{Логический аргумент: если \code{TRUE}, в API уходит IncludeVAT = "YES", иначе "NO".}
 
-\item{save_report}{Логическое значение. Если TRUE, сохраняет CSV в папку /reports.}
+\item{save_report}{Логическое значение. Если TRUE, сохраняет CSV.}
+
+\item{save_dir}{Путь к папке для сохранения отчета (по умолчанию "reports").}
+
+\item{max_tries}{Максимальное количество попыток опроса отчета до остановки.}
 }
 \description{
 Получение статистики из Яндекс Директа

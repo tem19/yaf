@@ -70,3 +70,4 @@ get_yaf_token <- function(login) {
 
   return(token)
 }
+
