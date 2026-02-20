@@ -1,6 +1,6 @@
 Package: yaf
 Title: Yandex Direct API Functions
-Version: 0.3.0
+Version: 0.4.0
 Authors@R: 
     person("Artem", "Rogozhin", , "tem19@live.ru", role = c("aut", "cre"))
 Description: This package import reports from Yandex Direct API.
