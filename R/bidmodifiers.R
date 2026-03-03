@@ -53,13 +53,14 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
         method = "get",
         params = list(
           SelectionCriteria = selection_criteria,
-          # УБРАЛ State, оставил только разрешенные значения
           FieldNames = as.list(c("Id", "CampaignId", "AdGroupId", "Level", "Type")),
           MobileAdjustmentFieldNames = as.list(c("BidModifier")),
           DemographicsAdjustmentFieldNames = as.list(c("Gender", "Age", "BidModifier")),
           RegionalAdjustmentFieldNames = as.list(c("RegionId", "BidModifier")),
           VideoAdjustmentFieldNames = as.list(c("BidModifier")),
           SmartAdAdjustmentFieldNames = as.list(c("BidModifier")),
+          AdGroupAdjustmentFieldNames = as.list(c("BidModifier")),
+          RetargetingAdjustmentFieldNames = as.list(c("RetargetingConditionId", "BidModifier")),
           Page = list(Offset = jsonlite::unbox(offset))
         )
       )
@@ -103,36 +104,68 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
   cli::cli_inform("i Парсинг данных...")
 
   df <- purrr::map_dfr(all_modifiers, function(x) {
+
+    # Супер-безопасное извлечение данных
+    safe_val <- function(obj, field) {
+      if (is.null(obj)) return(NA)
+
+      # Случай 1: Это список списков (и он не пустой)
+      if (is.list(obj) && length(obj) > 0 && is.list(obj[[1]])) {
+        val <- obj[[1]][[field]]
+      }
+      # Случай 2: Это простой именованный список (атомарный вектор после jsonlite)
+      else if (!is.null(obj[[field]])) {
+        val <- obj[[field]]
+      }
+      else {
+        val <- NA
+      }
+      return(if(is.null(val)) NA else val)
+    }
+
     out <- data.frame(
       modifier_id = x$Id,
       campaign_id = if(!is.null(x$CampaignId)) x$CampaignId else NA,
       adgroup_id  = if(!is.null(x$AdGroupId)) x$AdGroupId else NA,
       level       = x$Level,
       type        = x$Type,
+      value       = NA,
+      condition   = NA,
       stringsAsFactors = FALSE
     )
 
-    val <- NA
-    condition <- NA
+    if (x$Type == "MOBILE_ADJUSTMENT") {
+      out$value <- safe_val(x$MobileAdjustment, "BidModifier")
 
-    if (x$Type == "MOBILE_ADJUSTMENT" && !is.null(x$MobileAdjustment)) {
-      val <- x$MobileAdjustment$BidModifier
-    } else if (x$Type == "DEMOGRAPHICS_ADJUSTMENT" && !is.null(x$DemographicsAdjustment)) {
-      val <- x$DemographicsAdjustment$BidModifier
-      condition <- paste0(x$DemographicsAdjustment$Gender, " ", x$DemographicsAdjustment$Age)
-    } else if (x$Type == "REGIONAL_ADJUSTMENT" && !is.null(x$RegionalAdjustment)) {
-      val <- x$RegionalAdjustment$BidModifier
-      condition <- as.character(x$RegionalAdjustment$RegionId)
-    } else if (x$Type == "VIDEO_ADJUSTMENT" && !is.null(x$VideoAdjustment)) {
-      val <- x$VideoAdjustment$BidModifier
-    } else if (x$Type == "SMART_AD_ADJUSTMENT" && !is.null(x$SmartAdAdjustment)) {
-      val <- x$SmartAdAdjustment$BidModifier
+    } else if (x$Type == "DEMOGRAPHICS_ADJUSTMENT") {
+      out$value <- safe_val(x$DemographicsAdjustment, "BidModifier")
+      g <- safe_val(x$DemographicsAdjustment, "Gender")
+      a <- safe_val(x$DemographicsAdjustment, "Age")
+      out$condition <- paste0(g, " ", a)
+
+    } else if (x$Type == "REGIONAL_ADJUSTMENT") {
+      out$value <- safe_val(x$RegionalAdjustment, "BidModifier")
+      out$condition <- as.character(safe_val(x$RegionalAdjustment, "RegionId"))
+
+    } else if (x$Type == "RETARGETING_ADJUSTMENT") {
+      out$value <- safe_val(x$RetargetingAdjustment, "BidModifier")
+      out$condition <- as.character(safe_val(x$RetargetingAdjustment, "RetargetingConditionId"))
+
+    } else if (x$Type == "AD_GROUP_ADJUSTMENT") {
+      out$value <- safe_val(x$AdGroupAdjustment, "BidModifier")
+
+    } else if (x$Type == "VIDEO_ADJUSTMENT") {
+      out$value <- safe_extract(x$VideoAdjustment, "BidModifier")
+
+    } else if (x$Type == "SMART_AD_ADJUSTMENT") {
+      out$value <- safe_extract(x$SmartAdAdjustment, "BidModifier")
     }
 
-    out$value <- val
-    out$condition <- condition
     return(out)
   })
+
+  # Очищаем результаты от совсем пустых строк (если вдруг проскочили)
+  df <- df[!is.na(df$modifier_id), ]
 
   cli::cli_alert_success("Успешно выгружено корректировок: {.val {nrow(df)}}")
   return(df)
