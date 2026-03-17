@@ -29,7 +29,7 @@ yaf_get_report <- function(login,
                            include_vat = TRUE,
                            save_report = FALSE,
                            save_dir = "reports",
-                           max_tries = 60L) {
+                           max_tries = 600L) {
 
   # Валидация аргументов
   if (missing(login) || is.null(login) || !is.character(login) || length(login) != 1L || !nzchar(login)) {
