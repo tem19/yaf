@@ -23,7 +23,7 @@ yaf_api_get(
 "bidmodifiers", "negativekeywordsharedsets" и т. д.}
 
 \item{params}{Список params запроса: SelectionCriteria, FieldNames,
-{Type}FieldNames. Массивы внутри SelectionCriteria передавайте как list().}
+\if{html}{\out{<Type>}}FieldNames. Массивы внутри SelectionCriteria передавайте как list().}
 
 \item{batch_ids}{Вектор id для разбиения на батчи (необязательно).}
 

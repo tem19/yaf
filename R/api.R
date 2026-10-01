@@ -125,7 +125,7 @@ yaf_api_request <- function(login, service, body, token,
 #' @param service Имя сервиса: "campaigns", "adgroups", "ads", "keywords",
 #'   "bidmodifiers", "negativekeywordsharedsets" и т. д.
 #' @param params Список params запроса: SelectionCriteria, FieldNames,
-#'   {Type}FieldNames. Массивы внутри SelectionCriteria передавайте как list().
+#'   <Type>FieldNames. Массивы внутри SelectionCriteria передавайте как list().
 #' @param batch_ids Вектор id для разбиения на батчи (необязательно).
 #' @param batch_field Поле SelectionCriteria для батчей, например "CampaignIds".
 #' @param batch_size Размер батча. Лимит зависит от сервиса и поля.
