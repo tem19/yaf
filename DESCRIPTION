@@ -1,6 +1,6 @@
 Package: yaf
 Title: Yandex Direct API Functions
-Version: 0.7.0
+Version: 0.8.0
 Authors@R: 
     person("Artem", "Rogozhin", , "tem19@live.ru", role = c("aut", "cre"))
 Description: This package import reports from Yandex Direct API.
@@ -10,18 +10,19 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
     dplyr,
-    httr2,
+    httr2 (>= 1.0.0),
     jsonlite,
     purrr,
     tidyr,
     stringi,
     cli,
-    R6
+    R6,
+    stats
 URL: https://github.com/tem19/yaf
 BugReports: https://github.com/tem19/yaf/issues
 Depends: 
     R (>= 4.1.0)
 LazyData: true
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.1.7)
 Config/testthat/edition: 3
