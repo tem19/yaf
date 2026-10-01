@@ -57,6 +57,13 @@ get_yaf_token <- function(login) {
 
   # Если файла нет — запускаем процесс получения
   if (!file.exists(token_path)) {
+    if (!interactive()) {
+      stop(
+        "Токен для логина '", login, "' не найден: ", token_path, ". ",
+        "Получите его в интерактивной сессии R: yaf_get_token('", login, "').",
+        call. = FALSE
+      )
+    }
     message("Файл токена не найден для '", login, "'. Запускаю yaf_get_token()...")
     yaf_get_token(login = login)
   }
