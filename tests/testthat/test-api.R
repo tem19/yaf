@@ -1,11 +1,3 @@
-mock_env <- function(env = parent.frame()) {
-  local_mocked_bindings(
-    get_yaf_token = function(login) "test-token",
-    yaf_sleep = function(seconds) invisible(NULL),
-    .env = env
-  )
-}
-
 test_that("FieldNames из одного элемента уходит массивом, пустой SelectionCriteria объектом", {
   p <- yaf_prepare_params(list(FieldNames = "Id"))
   expect_equal(
