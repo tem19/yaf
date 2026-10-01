@@ -149,6 +149,26 @@ stats <- yaf_get_report(
 
 ## yaf_get_campaigns() - выгрузка списка рекламных кампаний
 
+## Отслеживание изменений в аккаунте
+
+Функции сервиса `changes` позволяют узнать, что изменилось в аккаунте с указанного момента, и выгружать заново только измененные объекты и статистику. Время передается строкой `YYYY-MM-DDThh:mm:ssZ` (UTC), `POSIXct` или `Date`.
+
+`yaf_get_server_timestamp(login)` — текущее время сервера API; удобно сохранить как точку отсчета для следующей проверки.
+
+`yaf_check_campaigns(login, timestamp)` — кампании, в которых произошли изменения (метод `changes.checkCampaigns`). Колонки `self`, `children`, `stat` показывают, где именно: в самой кампании, в ее группах/объявлениях/фразах или в статистике. Время сервера сохраняется в атрибуте `timestamp`.
+
+`yaf_check_changes(login, timestamp, campaign_ids, adgroup_ids, ad_ids)` — ID измененных кампаний, групп и объявлений и даты, начиная с которых изменилась статистика (метод `changes.check`). Указывается один из списков ID; если ни один не указан, проверяются все кампании аккаунта.
+
+```         
+ts <- yaf_get_server_timestamp("your_yandex_login")
+# ... спустя время
+camps <- yaf_check_campaigns("your_yandex_login", ts)
+ch <- yaf_check_changes("your_yandex_login", ts, campaign_ids = camps$campaign_id)
+ch$modified$ad_ids     # измененные объявления
+ch$campaigns_stat      # с какой даты перевыгрузить статистику
+ts <- ch$timestamp     # точка отсчета для следующей проверки
+```
+
 # Работа с API Wordstat  
 ## yaf_ws_top() - сбор топовых запросов из Вордстата  
 Функция позволяет выгружать топ поисковых запросов по заданным ключевым словам - это основной функционал сервиса Wordstat.  
