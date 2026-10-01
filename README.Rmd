@@ -169,6 +169,26 @@ campaigns <- yaf_get_campaigns("your_yandex_login")
 kw <- yaf_get_keywords("your_yandex_login", campaign_ids = c(123, 456))
 ```
 
+## Отслеживание изменений в аккаунте
+
+Сервис `changes` API Директа сообщает, какие объекты изменились после заданного момента. Сами изменения он не возвращает, поэтому обычная схема такая: узнать, что изменилось, и перевыгрузить только эти объекты.
+
+-   `yaf_changes_timestamp()` — текущее время сервера. Сохраните его при первом запуске.
+-   `yaf_check_campaign_changes()` — какие кампании изменились и где: в параметрах кампании (`ChangedSelf`), в группах, объявлениях или фразах (`ChangedChildren`), в статистике (`ChangedStat`).
+-   `yaf_check_changes()` — id изменившихся кампаний, групп и объявлений внутри заданных кампаний, групп или объявлений.
+
+Каждая функция возвращает новое время сервера: его нужно передать при следующей проверке.
+
+```         
+ts <- yaf_changes_timestamp("your_yandex_login")
+
+# ... при следующем запуске
+ch <- yaf_check_campaign_changes("your_yandex_login", ts)
+changed <- ch$CampaignId[ch$ChangedSelf | ch$ChangedChildren]
+ads <- yaf_get_ads("your_yandex_login", campaign_ids = changed)
+ts <- attr(ch, "timestamp")
+```
+
 ## yaf_api_get() - произвольный get-запрос к API Директа
 
 Универсальная функция для метода `get` любого сервиса API v5. Сама разбивает id на батчи, проходит все страницы результата и повторяет запрос при временных ошибках. Возвращает список объектов в том виде, в каком их вернул API; в атрибуте `units` — баллы после последнего запроса.
