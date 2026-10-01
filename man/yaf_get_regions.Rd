@@ -9,7 +9,16 @@ yaf_get_regions(login)
 \arguments{
 \item{login}{Логин в Яндексе.}
 }
+\value{
+data.frame с колонками region_id, parent_id, region_name,
+region_type. При ошибке API — NULL.
+}
 \description{
 Возвращает дерево регионов (ID, название, родительский ID, тип).
 https://yandex.ru/dev/direct/doc/ru/dictionaries/get
+}
+\examples{
+\dontrun{
+regions <- yaf_get_regions("my_login")
+}
 }

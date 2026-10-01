@@ -11,7 +11,20 @@ yaf_api_error(
   request_id = NA_character_
 )
 }
+\arguments{
+\item{message}{Текст ошибки.}
+
+\item{code}{Код ошибки API Директа (error_code).}
+
+\item{service}{Сервис API, в котором произошла ошибка.}
+
+\item{request_id}{Идентификатор запроса из ответа API.}
+}
+\value{
+Объект условия классов yaf_api_error, error, condition.
+}
 \description{
-Ошибка API с кодом
+Создаёт условие класса yaf_api_error, чтобы ошибки API можно было
+ловить отдельно: tryCatch(..., yaf_api_error = function(e) e$code).
 }
 \keyword{internal}

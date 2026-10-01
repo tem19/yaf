@@ -53,6 +53,11 @@ yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
 #' Разделение фразы на саму фразу и минус-слова
 #'
 #' "---autotargeting" (автотаргетинг) минус-словом не считается.
+#'
+#' @param keyword Вектор фраз в формате API: "фраза -минус -слова".
+#'
+#' @return Список из двух векторов той же длины: phrase (фраза без
+#'   минус-слов) и minus (минус-слова без "-", по алфавиту, через "; ").
 #' @keywords internal
 yaf_split_keyword <- function(keyword) {
   keyword[is.na(keyword)] <- ""

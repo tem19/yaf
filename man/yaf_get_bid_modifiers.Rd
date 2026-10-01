@@ -34,6 +34,17 @@ yaf_get_bid_modifiers(
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
 }
+\value{
+data.frame с колонками modifier_id, campaign_id, adgroup_id,
+level, type, value (коэффициент в процентах) и condition (условие
+корректировки, например "GENDER_MALE AGE_25_34" или id региона).
+При raw = TRUE — список объектов API.
+}
 \description{
 Получение корректировок ставок из Яндекс Директа
+}
+\examples{
+\dontrun{
+mods <- yaf_get_bid_modifiers("my_login", campaign_ids = c(123, 456))
+}
 }

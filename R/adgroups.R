@@ -7,7 +7,15 @@
 #'   например list(TextAdGroupFeedParamsFieldNames = c("FeedId")).
 #' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
 #'
+#' @return data.frame с колонками adgroup_id, campaign_id, adgroup_name,
+#'   status, type и остальными запрошенными полями (вложенные поля —
+#'   JSON-строкой). При raw = TRUE — список объектов API.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' groups <- yaf_get_adgroups("my_login", campaign_ids = c(123, 456))
+#' }
 yaf_get_adgroups <- function(login, campaign_ids = NULL,
                              fields = c("Id", "CampaignId", "Name", "Status", "Type"),
                              type_fields = list(),

@@ -1,8 +1,34 @@
+#' Значение по умолчанию для NULL
+#'
+#' @param x Значение.
+#' @param y Что вернуть, если x равен NULL.
+#'
+#' @return x, если он не NULL, иначе y.
+#' @name grapes-or-or-grapes
+#' @keywords internal
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
+#' Пауза между повторами запроса
+#'
+#' Обёртка над Sys.sleep(): в тестах её подменяют, чтобы не ждать.
+#'
+#' @param seconds Длительность паузы в секундах.
+#'
+#' @return NULL, невидимо.
+#' @keywords internal
 yaf_sleep <- function(seconds) Sys.sleep(seconds)
 
 #' Ошибка API с кодом
+#'
+#' Создаёт условие класса yaf_api_error, чтобы ошибки API можно было
+#' ловить отдельно: tryCatch(..., yaf_api_error = function(e) e$code).
+#'
+#' @param message Текст ошибки.
+#' @param code Код ошибки API Директа (error_code).
+#' @param service Сервис API, в котором произошла ошибка.
+#' @param request_id Идентификатор запроса из ответа API.
+#'
+#' @return Объект условия классов yaf_api_error, error, condition.
 #' @keywords internal
 yaf_api_error <- function(message, code = NA_integer_, service = NA_character_,
                           request_id = NA_character_) {
@@ -14,6 +40,11 @@ yaf_api_error <- function(message, code = NA_integer_, service = NA_character_,
 }
 
 #' Разбор заголовка Units: "потрачено/осталось/лимит"
+#'
+#' @param header Значение заголовка Units или NULL.
+#'
+#' @return Именованный числовой вектор spent, rest, limit. Если заголовка
+#'   нет, все значения NA.
 #' @keywords internal
 yaf_parse_units <- function(header) {
   if (is.null(header) || is.na(header)) {
@@ -29,6 +60,10 @@ yaf_parse_units <- function(header) {
 #' элемента (FieldNames = "Id") уйдёт строкой, а не массивом, и API вернёт
 #' ошибку. Все *FieldNames принудительно превращаем в list().
 #' Пустой SelectionCriteria должен уйти как {}, а не [].
+#'
+#' @param params Список params запроса.
+#'
+#' @return Тот же список с исправленными FieldNames и SelectionCriteria.
 #' @keywords internal
 yaf_prepare_params <- function(params) {
   for (nm in grep("FieldNames$", names(params), value = TRUE)) {
@@ -41,6 +76,21 @@ yaf_prepare_params <- function(params) {
 }
 
 #' Один запрос к API с ретраями
+#'
+#' Отправляет запрос и разбирает ответ. Временные ошибки (коды из
+#' retry_codes, HTTP 5xx, сетевые сбои) повторяются с паузой 1, 2, 4...
+#' секунд, но не больше 60. Остальные ошибки сразу останавливают
+#' выполнение с ошибкой класса yaf_api_error.
+#'
+#' @param login Логин в Яндексе (заголовок Client-Login).
+#' @param service Сервис API, например "campaigns".
+#' @param body Тело запроса: list(method = ..., params = ...).
+#' @param token OAuth-токен.
+#' @param max_retries Максимум повторов при временных ошибках.
+#' @param retry_codes Коды ошибок API, при которых запрос повторяется.
+#'
+#' @return Список с элементами result (поле result ответа API)
+#'   и units (см. yaf_parse_units()).
 #' @keywords internal
 yaf_api_request <- function(login, service, body, token,
                             max_retries = 5,
@@ -210,6 +260,11 @@ yaf_api_get <- function(login, service, params = list(),
 #'
 #' Скалярные поля остаются как есть, вложенные (списки, объекты)
 #' сериализуются в JSON-строку.
+#'
+#' @param items Список объектов API, например результат yaf_api_get().
+#'
+#' @return data.frame: одна строка на объект, колонки по полям объектов.
+#'   Для пустого списка — пустой data.frame.
 #' @keywords internal
 yaf_items_to_df <- function(items) {
   if (length(items) == 0) return(data.frame())
@@ -224,6 +279,10 @@ yaf_items_to_df <- function(items) {
 }
 
 #' Все Id кампаний аккаунта
+#'
+#' @param login Логин в Яндексе.
+#'
+#' @return Числовой вектор Id кампаний.
 #' @keywords internal
 yaf_all_campaign_ids <- function(login) {
   items <- yaf_api_get(login, "campaigns", list(FieldNames = "Id"), progress = FALSE)

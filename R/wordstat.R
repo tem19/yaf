@@ -6,7 +6,14 @@
 #' @param top_n Лимит фраз на один запрос (макс 2000).
 #' @param depth_limit Порог частотности для парсинга вглубь. Если частота фразы выше этого числа, скрипт соберет вложенные запросы для нее.
 #'
+#' @return data.frame с колонками phrase и count, отсортированный по
+#'   убыванию частоты. Если данных нет — NULL.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' top <- yaf_ws_top(c("купить слона"), token = "wordstat_token", region_id = 213)
+#' }
 yaf_ws_top <- function(phrase,
                        token,
                        region_id = 225,

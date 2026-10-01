@@ -6,6 +6,12 @@
 \usage{
 yaf_all_campaign_ids(login)
 }
+\arguments{
+\item{login}{Логин в Яндексе.}
+}
+\value{
+Числовой вектор Id кампаний.
+}
 \description{
 Все Id кампаний аккаунта
 }

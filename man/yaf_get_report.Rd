@@ -50,6 +50,15 @@ yaf_get_report(
 
 \item{max_tries}{Максимальное количество попыток опроса отчета до остановки.}
 }
+\value{
+data.frame с запрошенными полями отчета.
+}
 \description{
 Получение статистики из Яндекс Директа
+}
+\examples{
+\dontrun{
+stats <- yaf_get_report("my_login", date_range_type = "LAST_7_DAYS",
+                        fields = c("Date", "CampaignName", "Clicks", "Cost"))
+}
 }

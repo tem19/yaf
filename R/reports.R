@@ -15,7 +15,14 @@
 #' @param save_dir Путь к папке для сохранения отчета (по умолчанию "reports").
 #' @param max_tries Максимальное количество попыток опроса отчета до остановки.
 #'
+#' @return data.frame с запрошенными полями отчета.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' stats <- yaf_get_report("my_login", date_range_type = "LAST_7_DAYS",
+#'                         fields = c("Date", "CampaignName", "Clicks", "Cost"))
+#' }
 yaf_get_report <- function(login,
                            date_from = Sys.Date()-7,
                            date_to = Sys.Date()- 1,

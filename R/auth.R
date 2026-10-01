@@ -2,7 +2,15 @@
 #'
 #' @param login Character. Your Yandex login.
 #' @description Opens a browser to get an OAuth token and saves it to a local RDS file for future use.
+#'   The token is stored in `tools::R_user_dir("yaf", "config")` as `<login>.rds`.
+#'
+#' @return The token (character), invisibly.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' yaf_get_token("my_login")
+#' }
 yaf_get_token <- function(login) {
   if (missing(login) || is.null(login)) {
     stop("Аргумент 'login' обязателен для получения и сохранения токена.")
@@ -49,7 +57,13 @@ yaf_get_token <- function(login) {
 }
 
 #' Internal function to retrieve token
+#'
+#' Reads the token saved by yaf_get_token(). If the file is missing, starts
+#' yaf_get_token() in an interactive session and stops with an error otherwise.
+#'
 #' @param login Character. Yandex login.
+#'
+#' @return The token (character).
 #' @keywords internal
 get_yaf_token <- function(login) {
   conf_dir <- tools::R_user_dir("yaf", which = "config")

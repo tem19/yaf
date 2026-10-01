@@ -6,6 +6,13 @@
 \usage{
 yaf_parse_units(header)
 }
+\arguments{
+\item{header}{Значение заголовка Units или NULL.}
+}
+\value{
+Именованный числовой вектор spent, rest, limit. Если заголовка
+нет, все значения NA.
+}
 \description{
 Разбор заголовка Units: "потрачено/осталось/лимит"
 }

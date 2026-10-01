@@ -32,6 +32,16 @@ yaf_get_ads(
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
 }
+\value{
+data.frame с колонками ad_id, campaign_id, adgroup_id, type,
+status, state, title, title2, text, href, display_url_path.
+При raw = TRUE — список объектов API.
+}
 \description{
 Получение объявлений из Яндекс Директа
+}
+\examples{
+\dontrun{
+ads <- yaf_get_ads("my_login", campaign_ids = c(123, 456))
+}
 }

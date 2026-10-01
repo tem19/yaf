@@ -9,7 +9,11 @@ get_yaf_token(login)
 \arguments{
 \item{login}{Character. Yandex login.}
 }
+\value{
+The token (character).
+}
 \description{
-Internal function to retrieve token
+Reads the token saved by yaf_get_token(). If the file is missing, starts
+yaf_get_token() in an interactive session and stops with an error otherwise.
 }
 \keyword{internal}

@@ -13,7 +13,27 @@ yaf_api_request(
   retry_codes = c(52, 506, 1000, 1001, 1002)
 )
 }
+\arguments{
+\item{login}{Логин в Яндексе (заголовок Client-Login).}
+
+\item{service}{Сервис API, например "campaigns".}
+
+\item{body}{Тело запроса: list(method = ..., params = ...).}
+
+\item{token}{OAuth-токен.}
+
+\item{max_retries}{Максимум повторов при временных ошибках.}
+
+\item{retry_codes}{Коды ошибок API, при которых запрос повторяется.}
+}
+\value{
+Список с элементами result (поле result ответа API)
+и units (см. yaf_parse_units()).
+}
 \description{
-Один запрос к API с ретраями
+Отправляет запрос и разбирает ответ. Временные ошибки (коды из
+retry_codes, HTTP 5xx, сетевые сбои) повторяются с паузой 1, 2, 4...
+секунд, но не больше 60. Остальные ошибки сразу останавливают
+выполнение с ошибкой класса yaf_api_error.
 }
 \keyword{internal}

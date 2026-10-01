@@ -6,6 +6,12 @@
 \usage{
 yaf_prepare_params(params)
 }
+\arguments{
+\item{params}{Список params запроса.}
+}
+\value{
+Тот же список с исправленными FieldNames и SelectionCriteria.
+}
 \description{
 httr2 сериализует тело с auto_unbox = TRUE, поэтому вектор из одного
 элемента (FieldNames = "Id") уйдёт строкой, а не массивом, и API вернёт

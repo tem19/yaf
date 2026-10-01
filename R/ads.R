@@ -9,7 +9,15 @@
 #'   например list(TextAdFieldNames = c("Title", "Href")).
 #' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
 #'
+#' @return data.frame с колонками ad_id, campaign_id, adgroup_id, type,
+#'   status, state, title, title2, text, href, display_url_path.
+#'   При raw = TRUE — список объектов API.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' ads <- yaf_get_ads("my_login", campaign_ids = c(123, 456))
+#' }
 yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids = NULL,
                         fields = c("Id", "CampaignId", "AdGroupId", "Type", "Status", "State"),
                         type_fields = list(

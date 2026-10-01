@@ -7,7 +7,16 @@
 #'   например list(MobileAdjustmentFieldNames = c("BidModifier")).
 #' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
 #'
+#' @return data.frame с колонками modifier_id, campaign_id, adgroup_id,
+#'   level, type, value (коэффициент в процентах) и condition (условие
+#'   корректировки, например "GENDER_MALE AGE_25_34" или id региона).
+#'   При raw = TRUE — список объектов API.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' mods <- yaf_get_bid_modifiers("my_login", campaign_ids = c(123, 456))
+#' }
 yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
                                   type_fields = list(
                                     MobileAdjustmentFieldNames       = c("BidModifier"),
