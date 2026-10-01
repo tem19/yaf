@@ -1,9 +1,33 @@
 test_that("FieldNames из одного элемента уходит массивом, пустой SelectionCriteria объектом", {
-  p <- yaf_prepare_params(list(FieldNames = "Id"))
+  p <- yaf_prepare_params(list(SelectionCriteria = list(), FieldNames = "Id"))
   expect_equal(
     as.character(jsonlite::toJSON(p, auto_unbox = TRUE)),
-    '{"FieldNames":["Id"],"SelectionCriteria":{}}'
+    '{"SelectionCriteria":{},"FieldNames":["Id"]}'
   )
+})
+
+test_that("SelectionCriteria не добавляется, если его не передали", {
+  p <- yaf_prepare_params(list(FieldNames = "Id"))
+  expect_equal(as.character(jsonlite::toJSON(p, auto_unbox = TRUE)), '{"FieldNames":["Id"]}')
+})
+
+test_that("вложенные объекты разворачиваются в плоские поля", {
+  x <- list(
+    Id = 1,
+    NegativeKeywords = list(Items = list("бесплатно", "скачать")),
+    RegionIds = list(225, 1),
+    Settings = list(list(Option = "ADD_METRICA_TAG", Value = "YES")),
+    BiddingStrategy = list(Search = list(BiddingStrategyType = "HIGHEST_POSITION")),
+    Empty = NULL
+  )
+  expect_equal(yaf_flatten_object(x), list(
+    Id = 1,
+    NegativeKeywords = "бесплатно; скачать",
+    RegionIds = "225; 1",
+    Settings = "ADD_METRICA_TAG=YES",
+    BiddingStrategy.Search.BiddingStrategyType = "HIGHEST_POSITION",
+    Empty = NA
+  ))
 })
 
 test_that("страницы склеиваются по LimitedBy", {
@@ -151,4 +175,66 @@ test_that("yaf_get_bid_modifiers разбирает видео, демограф
   expect_equal(nrow(df), 4)
   expect_equal(df$value, c(150, 120, 90, 110))
   expect_equal(df$condition, c(NA, "GENDER_MALE AGE_25_34", "225", "1"))
+})
+
+test_that("yaf_get_campaigns выводит стратегию и минус-слова кампаний разных типов", {
+  mock_env()
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    body <<- req$body$data$params
+    httr2::response_json(body = list(result = list(Campaigns = list(
+      list(Id = 1, Name = "text", Type = "TEXT_CAMPAIGN",
+           NegativeKeywords = list(Items = list("бесплатно", "скачать")),
+           TextCampaign = list(BiddingStrategy = list(
+             Search = list(BiddingStrategyType = "HIGHEST_POSITION"),
+             Network = list(BiddingStrategyType = "SERVING_OFF")))),
+      list(Id = 2, Name = "unified", Type = "UNIFIED_CAMPAIGN",
+           NegativeKeywords = NULL,
+           UnifiedCampaign = list(BiddingStrategy = list(
+             Search = list(BiddingStrategyType = "WB_MAXIMUM_CLICKS"),
+             Network = list(BiddingStrategyType = "NETWORK_DEFAULT"))))
+    ))))
+  })
+
+  df <- yaf_get_campaigns("login")
+  expect_true(all(c("TextCampaignFieldNames", "UnifiedCampaignFieldNames") %in% names(body)))
+  expect_true("NegativeKeywords" %in% unlist(body$FieldNames))
+  expect_equal(df$BiddingStrategy.Search.BiddingStrategyType,
+               c("HIGHEST_POSITION", "WB_MAXIMUM_CLICKS"))
+  expect_equal(df$NegativeKeywords, c("бесплатно; скачать", NA))
+})
+
+test_that("yaf_get_keywords запрашивает ставки и переводит их в валюту", {
+  mock_env()
+  fields <- NULL
+  httr2::local_mocked_responses(function(req) {
+    fields <<- unlist(req$body$data$params$FieldNames)
+    httr2::response_json(body = list(result = list(Keywords = list(
+      list(Id = 1, Keyword = "купить слона -бесплатно", Bid = 12500000, ContextBid = 3000000)
+    ))))
+  })
+
+  df <- suppressMessages(yaf_get_keywords("login", campaign_ids = 1))
+  expect_true(all(c("Bid", "ContextBid", "StrategyPriority") %in% fields))
+  expect_equal(df$Bid, 12.5)
+  expect_equal(df$ContextBid, 3)
+})
+
+test_that("yaf_get_negative_keyword_sets не передаёт SelectionCriteria без ids", {
+  mock_env()
+  params <- NULL
+  httr2::local_mocked_responses(function(req) {
+    params <<- req$body$data$params
+    httr2::response_json(body = list(result = list(NegativeKeywordSharedSets = list(
+      list(Id = 7, Name = "общие", NegativeKeywords = list("скачать", "бесплатно"),
+           Associated = "YES")
+    ))))
+  })
+
+  df <- yaf_get_negative_keyword_sets("login")
+  expect_false("SelectionCriteria" %in% names(params))
+  expect_equal(df$NegativeKeywords, "бесплатно; скачать")
+
+  yaf_get_negative_keyword_sets("login", ids = c(7, 8))
+  expect_equal(unlist(params$SelectionCriteria$Ids), c(7, 8))
 })

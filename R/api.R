@@ -59,7 +59,9 @@ yaf_parse_units <- function(header) {
 #' httr2 сериализует тело с auto_unbox = TRUE, поэтому вектор из одного
 #' элемента (FieldNames = "Id") уйдёт строкой, а не массивом, и API вернёт
 #' ошибку. Все *FieldNames принудительно превращаем в list().
-#' Пустой SelectionCriteria должен уйти как {}, а не [].
+#' Пустой SelectionCriteria должен уйти как {}, а не []. Если
+#' SelectionCriteria не передан, он не добавляется: у некоторых сервисов
+#' (negativekeywordsharedsets) пустой SelectionCriteria — ошибка.
 #'
 #' @param params Список params запроса.
 #'
@@ -69,7 +71,7 @@ yaf_prepare_params <- function(params) {
   for (nm in grep("FieldNames$", names(params), value = TRUE)) {
     params[[nm]] <- as.list(params[[nm]])
   }
-  if (length(params$SelectionCriteria) == 0) {
+  if ("SelectionCriteria" %in% names(params) && length(params$SelectionCriteria) == 0) {
     params$SelectionCriteria <- stats::setNames(list(), character(0))
   }
   params
@@ -176,6 +178,8 @@ yaf_api_request <- function(login, service, body, token,
 #'   "bidmodifiers", "negativekeywordsharedsets" и т. д.
 #' @param params Список params запроса: SelectionCriteria, FieldNames,
 #'   <Type>FieldNames. Массивы внутри SelectionCriteria передавайте как list().
+#'   Если сервис требует SelectionCriteria даже для выборки всех объектов
+#'   (например, campaigns), передайте SelectionCriteria = list().
 #' @param batch_ids Вектор id для разбиения на батчи (необязательно).
 #' @param batch_field Поле SelectionCriteria для батчей, например "CampaignIds".
 #' @param batch_size Размер батча. Лимит зависит от сервиса и поля.
@@ -258,8 +262,9 @@ yaf_api_get <- function(login, service, params = list(),
 
 #' Плоская таблица из объектов API
 #'
-#' Скалярные поля остаются как есть, вложенные (списки, объекты)
-#' сериализуются в JSON-строку.
+#' Скалярные поля остаются как есть, вложенные разворачиваются через
+#' yaf_flatten_object(): объекты — в колонки с именами через точку,
+#' списки — в строку через "; ".
 #'
 #' @param items Список объектов API, например результат yaf_api_get().
 #'
@@ -268,14 +273,7 @@ yaf_api_get <- function(login, service, params = list(),
 #' @keywords internal
 yaf_items_to_df <- function(items) {
   if (length(items) == 0) return(data.frame())
-  rows <- lapply(items, function(x) {
-    lapply(x, function(v) {
-      if (is.null(v)) NA
-      else if (is.atomic(v) && length(v) == 1) v
-      else as.character(jsonlite::toJSON(v, auto_unbox = TRUE))
-    })
-  })
-  dplyr::bind_rows(rows)
+  dplyr::bind_rows(lapply(items, yaf_flatten_object))
 }
 
 #' Все Id кампаний аккаунта
@@ -285,6 +283,47 @@ yaf_items_to_df <- function(items) {
 #' @return Числовой вектор Id кампаний.
 #' @keywords internal
 yaf_all_campaign_ids <- function(login) {
-  items <- yaf_api_get(login, "campaigns", list(FieldNames = "Id"), progress = FALSE)
+  items <- yaf_api_get(login, "campaigns",
+                       list(SelectionCriteria = list(), FieldNames = "Id"),
+                       progress = FALSE)
   vapply(items, function(x) as.numeric(x$Id), numeric(1))
+}
+
+#' Плоский список полей из вложенного объекта API
+#'
+#' Вложенные объекты разворачиваются в поля с именами через точку
+#' (BiddingStrategy.Search.BiddingStrategyType). Списки строк вида
+#' list(Items = ...) и массивы скаляров склеиваются через "; ".
+#' Массивы настроек list(Option, Value) превращаются в "OPTION=VALUE; ...".
+#' Остальные массивы объектов сериализуются в JSON-строку.
+#'
+#' @param x Объект API (именованный список).
+#' @param prefix Префикс имён полей для рекурсивного вызова.
+#'
+#' @return Именованный список скаляров.
+#' @keywords internal
+yaf_flatten_object <- function(x, prefix = NULL) {
+  is_scalar <- function(e) is.atomic(e) && length(e) == 1
+  out <- list()
+  for (nm in names(x)) {
+    v <- x[[nm]]
+    key <- if (is.null(prefix)) nm else paste(prefix, nm, sep = ".")
+    if (is.null(v)) {
+      out[[key]] <- NA
+    } else if (is_scalar(v)) {
+      out[[key]] <- v
+    } else if (identical(names(v), "Items")) {
+      out[[key]] <- paste(unlist(v$Items), collapse = "; ")
+    } else if (!is.null(names(v))) {
+      out <- c(out, yaf_flatten_object(v, key))
+    } else if (all(vapply(v, is_scalar, logical(1)))) {
+      out[[key]] <- paste(unlist(v), collapse = "; ")
+    } else if (all(vapply(v, function(e) all(c("Option", "Value") %in% names(e)), logical(1)))) {
+      out[[key]] <- paste(vapply(v, function(e) paste0(e$Option, "=", e$Value), ""),
+                          collapse = "; ")
+    } else {
+      out[[key]] <- as.character(jsonlite::toJSON(v, auto_unbox = TRUE))
+    }
+  }
+  out
 }

@@ -6,9 +6,13 @@
 \usage{
 yaf_get_campaigns(
   login,
-  fields = c("Id", "Name", "Status", "State", "Type", "StartDate", "Statistics"),
-  type_fields = list(UnifiedCampaignFieldNames = c("BiddingStrategy", "AttributionModel",
-    "TrackingParams")),
+  fields = c("Id", "Name", "Status", "State", "Type", "StartDate", "Statistics",
+    "NegativeKeywords"),
+  type_fields = list(TextCampaignFieldNames = c("BiddingStrategy", "AttributionModel",
+    "NegativeKeywordSharedSetIds"), UnifiedCampaignFieldNames = c("BiddingStrategy",
+    "AttributionModel", "TrackingParams", "NegativeKeywordSharedSetIds"),
+    MobileAppCampaignFieldNames = c("BiddingStrategy", "NegativeKeywordSharedSetIds"),
+    CpmBannerCampaignFieldNames = c("BiddingStrategy")),
   raw = FALSE
 )
 }
@@ -23,13 +27,26 @@ yaf_get_campaigns(
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
 }
 \value{
-A data frame с ID кампаний, их названиями, статусами и типами.
+data.frame, одна строка на кампанию. Вложенные поля развёрнуты
+в колонки с именами через точку (Statistics.Clicks,
+BiddingStrategy.Search.BiddingStrategyType), списки
+(NegativeKeywords, NegativeKeywordSharedSetIds) склеены через "; ",
+настройки Settings — в виде "OPTION=VALUE; ...". При raw = TRUE —
+список объектов API.
 }
 \description{
 Функция возвращает таблицу со списком всех кампаний рекламодателя.
 }
+\details{
+Поля из тип-специфичных блоков (TextCampaign, UnifiedCampaign и т. д.)
+выводятся без префикса типа, чтобы у кампаний разных типов были одни
+и те же колонки: BiddingStrategy.Search.BiddingStrategyType,
+AttributionModel и т. д. Тип кампании — в колонке Type.
+}
 \examples{
 \dontrun{
 my_campaigns <- yaf_get_campaigns("my_login")
+my_campaigns[, c("Name", "BiddingStrategy.Search.BiddingStrategyType",
+                 "NegativeKeywords")]
 }
 }

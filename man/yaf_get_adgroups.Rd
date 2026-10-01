@@ -26,8 +26,9 @@ yaf_get_adgroups(
 }
 \value{
 data.frame с колонками adgroup_id, campaign_id, adgroup_name,
-status, type и остальными запрошенными полями (вложенные поля —
-JSON-строкой). При raw = TRUE — список объектов API.
+status, type и остальными запрошенными полями. Вложенные объекты
+развёрнуты в колонки через точку, списки (RegionIds, NegativeKeywords)
+склеены через "; ". При raw = TRUE — список объектов API.
 }
 \description{
 Получение списка групп объявлений из Яндекс Директа

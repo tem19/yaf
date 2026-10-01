@@ -4,10 +4,13 @@
 \alias{yaf_get_negative_keyword_sets}
 \title{Получение наборов минус-фраз}
 \usage{
-yaf_get_negative_keyword_sets(login, raw = FALSE)
+yaf_get_negative_keyword_sets(login, ids = NULL, raw = FALSE)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
+
+\item{ids}{Вектор ID наборов (необязательно). Если не задан,
+выгружаются все наборы аккаунта.}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API.}
 }

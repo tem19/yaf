@@ -16,6 +16,8 @@ yaf_prepare_params(params)
 httr2 сериализует тело с auto_unbox = TRUE, поэтому вектор из одного
 элемента (FieldNames = "Id") уйдёт строкой, а не массивом, и API вернёт
 ошибку. Все *FieldNames принудительно превращаем в list().
-Пустой SelectionCriteria должен уйти как {}, а не [].
+Пустой SelectionCriteria должен уйти как {}, а не []. Если
+SelectionCriteria не передан, он не добавляется: у некоторых сервисов
+(negativekeywordsharedsets) пустой SelectionCriteria — ошибка.
 }
 \keyword{internal}

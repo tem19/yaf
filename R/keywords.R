@@ -9,6 +9,11 @@
 #'
 #' @return data.frame с полями из fields и колонками KeywordPhrase
 #'   (фраза без минус-слов) и KeywordMinusWords (минус-слова через "; ").
+#'   Ставки Bid (на поиске) и ContextBid (в сетях) переведены из
+#'   микроединиц API в валюту аккаунта: 12.5 означает 12,50 руб.
+#'   При автоматической стратегии ставки не применяются, но API их
+#'   всё равно возвращает. При raw = TRUE — список объектов API
+#'   (ставки в микроединицах).
 #' @export
 #'
 #' @examples
@@ -18,6 +23,7 @@
 yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
                              fields = c("Id", "CampaignId", "AdGroupId", "Keyword",
                                         "State", "Status", "ServingStatus",
+                                        "Bid", "ContextBid", "StrategyPriority",
                                         "UserParam1", "UserParam2"),
                              raw = FALSE) {
   if (!is.null(adgroup_ids)) {
@@ -39,6 +45,11 @@ yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
   if (raw) return(items)
 
   df <- yaf_items_to_df(items)
+
+  # API отдаёт ставки в микроединицах: 1 000 000 = 1 единица валюты
+  for (col in intersect(c("Bid", "ContextBid"), names(df))) {
+    df[[col]] <- as.numeric(df[[col]]) / 1e6
+  }
 
   if ("Keyword" %in% names(df)) {
     parts <- yaf_split_keyword(df$Keyword)
