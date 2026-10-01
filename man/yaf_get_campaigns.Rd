@@ -4,10 +4,23 @@
 \alias{yaf_get_campaigns}
 \title{Получение списка рекламных кампаний}
 \usage{
-yaf_get_campaigns(login)
+yaf_get_campaigns(
+  login,
+  fields = c("Id", "Name", "Status", "State", "Type", "StartDate", "Statistics"),
+  type_fields = list(UnifiedCampaignFieldNames = c("BiddingStrategy", "AttributionModel",
+    "TrackingParams")),
+  raw = FALSE
+)
 }
 \arguments{
 \item{login}{Character. Логин в Яндексе.}
+
+\item{fields}{Вектор полей из FieldNames сервиса.}
+
+\item{type_fields}{Именованный список тип-специфичных полей,
+например list(TextCampaignFieldNames = c("BiddingStrategy")).}
+
+\item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
 }
 \value{
 A data frame с ID кампаний, их названиями, статусами и типами.

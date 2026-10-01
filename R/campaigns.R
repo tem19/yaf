@@ -3,6 +3,10 @@
 #' Функция возвращает таблицу со списком всех кампаний рекламодателя.
 #'
 #' @param login Character. Логин в Яндексе.
+#' @param fields Вектор полей из FieldNames сервиса.
+#' @param type_fields Именованный список тип-специфичных полей,
+#'   например list(TextCampaignFieldNames = c("BiddingStrategy")).
+#' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
 #'
 #' @return A data frame с ID кампаний, их названиями, статусами и типами.
 #' @export
@@ -13,60 +17,29 @@
 #' \dontrun{
 #' my_campaigns <- yaf_get_campaigns("my_login")
 #' }
-yaf_get_campaigns <- function(login) {
-  # URL для запроса (используем стабильную v5)
-  url <- "https://api.direct.yandex.com/json/v5/campaigns"
+yaf_get_campaigns <- function(login,
+                              fields = c("Id", "Name", "Status", "State", "Type",
+                                         "StartDate", "Statistics"),
+                              type_fields = list(
+                                UnifiedCampaignFieldNames = c("BiddingStrategy",
+                                                              "AttributionModel",
+                                                              "TrackingParams")
+                              ),
+                              raw = FALSE) {
+  params <- c(
+    list(
+      SelectionCriteria = list(
+        Statuses = list("ACCEPTED", "DRAFT", "MODERATION", "REJECTED")
+      ),
+      FieldNames = fields
+    ),
+    type_fields
+  )
 
-  api_token <- get_yaf_token(login)
+  items <- yaf_api_get(login, "campaigns", params, progress = FALSE)
 
-  # Создание запроса
-  response <- httr2::request(url) |>
-    httr2::req_headers(
-      Authorization = paste("Bearer", api_token),
-      `Client-Login` = login,
-      `Content-Type` = "application/json; charset=utf-8"
-    ) |>
-    httr2::req_body_json(list(
-      method = "get",
-      params = list(
-        SelectionCriteria = list(
-          Statuses = list("ACCEPTED", "DRAFT", "MODERATION", "REJECTED")
-        ),
-        FieldNames = c("Id", "Name", "Status", "State", "Type", "StartDate", "Statistics"),
-        #TextCampaignFieldNames = c("BiddingStrategy", "AttributionModel","TrackingParams"),
-        UnifiedCampaignFieldNames = c("BiddingStrategy", "AttributionModel","TrackingParams")
-      )
-    )) |>
-    httr2::req_perform()
+  if (raw) return(items)
 
-  # Проверка статуса ответа
-  if (httr2::resp_status(response) == 200) {
-    result <- httr2::resp_body_json(response)
-
-    # Проверка на внутреннюю ошибку API Яндекс Директа
-    err <- result$error
-
-    if (!is.null(err)) {
-      message("Ошибка API Яндекс Директа:")
-      print(err$error_string)
-      print(err$error_code)
-      print(err$error_detail)
-    } else {
-      # Парсинг JSON-ответа с помощью purrr
-      # Используем .progress для наглядности, если кампаний много
-      campaigns <- purrr::map_dfr(result$result$Campaigns, ~as.data.frame(t(unlist(.))))
-    }
-
-  } else {
-    message(paste("Ошибка HTTP:", httr2::resp_status(response)))
-    print(httr2::resp_body_string(response))
-  }
-
-  # Финальный возврат объекта
-  if (exists("campaigns")) {
-    return(campaigns)
-  } else {
-    message("FAILED. Check an error.")
-    return(NULL)
-  }
+  # Прежний формат: вложенные поля разворачиваются через unlist
+  purrr::map_dfr(items, ~as.data.frame(t(unlist(.))))
 }

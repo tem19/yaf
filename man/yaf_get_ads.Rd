@@ -4,7 +4,17 @@
 \alias{yaf_get_ads}
 \title{Получение объявлений из Яндекс Директа}
 \usage{
-yaf_get_ads(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids = NULL)
+yaf_get_ads(
+  login,
+  campaign_ids = NULL,
+  adgroup_ids = NULL,
+  ad_ids = NULL,
+  fields = c("Id", "CampaignId", "AdGroupId", "Type", "Status", "State"),
+  type_fields = list(TextAdFieldNames = c("Title", "Title2", "Text", "Href",
+    "DisplayUrlPath"), DynamicTextAdFieldNames = c("Text"), MobileAppAdFieldNames =
+    c("Title", "Text")),
+  raw = FALSE
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -14,6 +24,13 @@ yaf_get_ads(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids = NULL)
 \item{adgroup_ids}{Вектор ID групп (необязательно).}
 
 \item{ad_ids}{Вектор ID конкретных объявлений (необязательно).}
+
+\item{fields}{Вектор полей из FieldNames сервиса.}
+
+\item{type_fields}{Именованный список тип-специфичных полей,
+например list(TextAdFieldNames = c("Title", "Href")).}
+
+\item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
 }
 \description{
 Получение объявлений из Яндекс Директа
