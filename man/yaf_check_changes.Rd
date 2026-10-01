@@ -10,7 +10,8 @@ yaf_check_changes(
   campaign_ids = NULL,
   adgroup_ids = NULL,
   ad_ids = NULL,
-  field_names = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat")
+  field_names = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"),
+  max_retries = 20
 )
 }
 \arguments{
@@ -28,6 +29,9 @@ yaf_check_changes(
 
 \item{field_names}{Какие данные вернуть: любые из \code{"CampaignIds"},
 \code{"AdGroupIds"}, \code{"AdIds"}, \code{"CampaignsStat"}.}
+
+\item{max_retries}{Сколько раз дозапрашивать ID, которые API вернул как
+необработанные (\code{Unprocessed}) из-за лимита на размер ответа.}
 }
 \value{
 Список:
@@ -35,8 +39,8 @@ yaf_check_changes(
 \item \code{modified} — список векторов \code{campaign_ids}, \code{adgroup_ids}, \code{ad_ids}
 с объектами, измененными после \code{timestamp};
 \item \code{not_found} — ID из запроса, которые не найдены;
-\item \code{unprocessed} — ID, которые не удалось обработать (например, из-за
-слишком большого числа изменений) — их стоит запросить повторно;
+\item \code{unprocessed} — ID, которые не удалось обработать даже после
+повторных запросов (обычно пусто);
 \item \code{campaigns_stat} — data frame \code{campaign_id}, \code{border_date}: дата, начиная
 с которой изменилась статистика кампании;
 \item \code{timestamp} — время сервера на момент запроса, для следующего вызова.
@@ -48,6 +52,8 @@ yaf_check_changes(
 кампаний. Нужно указать ровно один из параметров \code{campaign_ids},
 \code{adgroup_ids} или \code{ad_ids}. Большие списки ID автоматически разбиваются на
 пакеты по лимитам API (3000 кампаний, 10000 групп, 50000 объявлений).
+Если изменений слишком много и API возвращает часть ID как необработанные
+(\code{Unprocessed}), функция автоматически дозапрашивает их.
 }
 \examples{
 \dontrun{

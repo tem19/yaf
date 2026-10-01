@@ -76,6 +76,8 @@ yaf_check_campaigns <- function(login, timestamp) {
 #' кампаний. Нужно указать ровно один из параметров `campaign_ids`,
 #' `adgroup_ids` или `ad_ids`. Большие списки ID автоматически разбиваются на
 #' пакеты по лимитам API (3000 кампаний, 10000 групп, 50000 объявлений).
+#' Если изменений слишком много и API возвращает часть ID как необработанные
+#' (`Unprocessed`), функция автоматически дозапрашивает их.
 #'
 #' @param login Character. Логин в Яндексе.
 #' @param timestamp Время, начиная с которого искать изменения. Строка в
@@ -86,13 +88,15 @@ yaf_check_campaigns <- function(login, timestamp) {
 #' @param ad_ids Вектор ID объявлений.
 #' @param field_names Какие данные вернуть: любые из `"CampaignIds"`,
 #'   `"AdGroupIds"`, `"AdIds"`, `"CampaignsStat"`.
+#' @param max_retries Сколько раз дозапрашивать ID, которые API вернул как
+#'   необработанные (`Unprocessed`) из-за лимита на размер ответа.
 #'
 #' @return Список:
 #'   * `modified` — список векторов `campaign_ids`, `adgroup_ids`, `ad_ids`
 #'     с объектами, измененными после `timestamp`;
 #'   * `not_found` — ID из запроса, которые не найдены;
-#'   * `unprocessed` — ID, которые не удалось обработать (например, из-за
-#'     слишком большого числа изменений) — их стоит запросить повторно;
+#'   * `unprocessed` — ID, которые не удалось обработать даже после
+#'     повторных запросов (обычно пусто);
 #'   * `campaigns_stat` — data frame `campaign_id`, `border_date`: дата, начиная
 #'     с которой изменилась статистика кампании;
 #'   * `timestamp` — время сервера на момент запроса, для следующего вызова.
@@ -109,7 +113,8 @@ yaf_check_changes <- function(login,
                               campaign_ids = NULL,
                               adgroup_ids = NULL,
                               ad_ids = NULL,
-                              field_names = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat")) {
+                              field_names = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"),
+                              max_retries = 20) {
   ts <- yaf_format_timestamp(timestamp)
   field_names <- match.arg(field_names, several.ok = TRUE)
 
@@ -127,15 +132,21 @@ yaf_check_changes <- function(login,
   }
 
   if (!is.null(campaign_ids)) {
-    ids <- campaign_ids; id_field <- "CampaignIds"; batch_size <- 3000
+    ids <- campaign_ids; id_field <- "CampaignIds"
   } else if (!is.null(adgroup_ids)) {
-    ids <- adgroup_ids; id_field <- "AdGroupIds"; batch_size <- 10000
+    ids <- adgroup_ids; id_field <- "AdGroupIds"
   } else {
-    ids <- ad_ids; id_field <- "AdIds"; batch_size <- 50000
+    ids <- ad_ids; id_field <- "AdIds"
   }
 
-  ids <- unique(as.numeric(ids))
-  batches <- split(ids, ceiling(seq_along(ids) / batch_size))
+  limits <- c(CampaignIds = 3000, AdGroupIds = 10000, AdIds = 50000)
+  out_keys <- c(CampaignIds = "campaign_ids", AdGroupIds = "adgroup_ids", AdIds = "ad_ids")
+
+  make_batches <- function(field, ids) {
+    ids <- unique(as.numeric(ids))
+    lapply(split(ids, ceiling(seq_along(ids) / limits[[field]])),
+           function(b) list(field = field, ids = b))
+  }
 
   empty_ids <- function() list(campaign_ids = numeric(0), adgroup_ids = numeric(0), ad_ids = numeric(0))
   out <- list(
@@ -154,15 +165,22 @@ yaf_check_changes <- function(login,
     acc
   }
 
-  for (batch in batches) {
+  # Очередь пакетов: если ответ упирается в лимит API, необработанные ID
+  # возвращаются в Unprocessed и дозапрашиваются отдельными пакетами
+  queue <- make_batches(id_field, ids)
+  retries <- 0
+
+  while (length(queue) > 0) {
+    batch <- queue[[1]]
+    queue <- queue[-1]
+
     params <- list(FieldNames = as.list(field_names), Timestamp = ts)
-    params[[id_field]] <- as.list(batch)
+    params[[batch$field]] <- as.list(batch$ids)
 
     res <- yaf_changes_request(login, "check", params)
 
-    out$modified    <- append_ids(out$modified, res$Modified)
-    out$not_found   <- append_ids(out$not_found, res$NotFound)
-    out$unprocessed <- append_ids(out$unprocessed, res$Unprocessed)
+    out$modified  <- append_ids(out$modified, res$Modified)
+    out$not_found <- append_ids(out$not_found, res$NotFound)
 
     if (length(res$CampaignsStat) > 0) {
       out$campaigns_stat <- rbind(out$campaigns_stat, purrr::map_dfr(res$CampaignsStat, function(x) {
@@ -173,11 +191,28 @@ yaf_check_changes <- function(login,
     # Берем время первого пакета: так при следующем вызове не будут пропущены
     # изменения, произошедшие во время обработки остальных пакетов
     if (is.null(out$timestamp)) out$timestamp <- res$Timestamp
+
+    for (field in names(out_keys)) {
+      left <- as.numeric(unlist(res$Unprocessed[[field]]))
+      if (length(left) == 0) next
+      # Нет прогресса (тот же набор ID) или исчерпаны повторы — отдаем пользователю
+      no_progress <- field == batch$field && setequal(left, batch$ids)
+      if (no_progress || retries >= max_retries) {
+        out$unprocessed[[out_keys[[field]]]] <- c(out$unprocessed[[out_keys[[field]]]], left)
+      } else {
+        queue <- c(queue, make_batches(field, left))
+      }
+    }
+    if (length(res$Unprocessed) > 0) retries <- retries + 1
   }
+
+  out$modified  <- lapply(out$modified, unique)
+  out$not_found <- lapply(out$not_found, unique)
+  out$campaigns_stat <- unique(out$campaigns_stat)
 
   n_unprocessed <- length(unlist(out$unprocessed))
   if (n_unprocessed > 0) {
-    cli::cli_warn("Не обработано объектов: {n_unprocessed}. Запросите их повторно (см. {.field unprocessed}).")
+    cli::cli_warn("Не обработано объектов даже после повторных запросов: {n_unprocessed} (см. {.field unprocessed}).")
   }
 
   cli::cli_alert_success(
