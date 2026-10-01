@@ -20,5 +20,8 @@ Imports:
 URL: https://github.com/tem19/yaf
 BugReports: https://github.com/tem19/yaf/issues
 Depends: 
-    R (>= 3.5)
+    R (>= 4.1.0)
 LazyData: true
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
