@@ -1,0 +1,329 @@
+#' Значение по умолчанию для NULL
+#'
+#' @param x Значение.
+#' @param y Что вернуть, если x равен NULL.
+#'
+#' @return x, если он не NULL, иначе y.
+#' @name grapes-or-or-grapes
+#' @keywords internal
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+#' Пауза между повторами запроса
+#'
+#' Обёртка над Sys.sleep(): в тестах её подменяют, чтобы не ждать.
+#'
+#' @param seconds Длительность паузы в секундах.
+#'
+#' @return NULL, невидимо.
+#' @keywords internal
+yaf_sleep <- function(seconds) Sys.sleep(seconds)
+
+#' Ошибка API с кодом
+#'
+#' Создаёт условие класса yaf_api_error, чтобы ошибки API можно было
+#' ловить отдельно: tryCatch(..., yaf_api_error = function(e) e$code).
+#'
+#' @param message Текст ошибки.
+#' @param code Код ошибки API Директа (error_code).
+#' @param service Сервис API, в котором произошла ошибка.
+#' @param request_id Идентификатор запроса из ответа API.
+#'
+#' @return Объект условия классов yaf_api_error, error, condition.
+#' @keywords internal
+yaf_api_error <- function(message, code = NA_integer_, service = NA_character_,
+                          request_id = NA_character_) {
+  structure(
+    class = c("yaf_api_error", "error", "condition"),
+    list(message = message, call = NULL, code = code,
+         service = service, request_id = request_id)
+  )
+}
+
+#' Разбор заголовка Units: "потрачено/осталось/лимит"
+#'
+#' @param header Значение заголовка Units или NULL.
+#'
+#' @return Именованный числовой вектор spent, rest, limit. Если заголовка
+#'   нет, все значения NA.
+#' @keywords internal
+yaf_parse_units <- function(header) {
+  if (is.null(header) || is.na(header)) {
+    return(c(spent = NA_real_, rest = NA_real_, limit = NA_real_))
+  }
+  v <- as.numeric(strsplit(header, "/", fixed = TRUE)[[1]])
+  stats::setNames(v[1:3], c("spent", "rest", "limit"))
+}
+
+#' Подготовка params к сериализации
+#'
+#' httr2 сериализует тело с auto_unbox = TRUE, поэтому вектор из одного
+#' элемента (FieldNames = "Id") уйдёт строкой, а не массивом, и API вернёт
+#' ошибку. Все *FieldNames принудительно превращаем в list().
+#' Пустой SelectionCriteria должен уйти как {}, а не []. Если
+#' SelectionCriteria не передан, он не добавляется: у некоторых сервисов
+#' (negativekeywordsharedsets) пустой SelectionCriteria — ошибка.
+#'
+#' @param params Список params запроса.
+#'
+#' @return Тот же список с исправленными FieldNames и SelectionCriteria.
+#' @keywords internal
+yaf_prepare_params <- function(params) {
+  for (nm in grep("FieldNames$", names(params), value = TRUE)) {
+    params[[nm]] <- as.list(params[[nm]])
+  }
+  if ("SelectionCriteria" %in% names(params) && length(params$SelectionCriteria) == 0) {
+    params$SelectionCriteria <- stats::setNames(list(), character(0))
+  }
+  params
+}
+
+#' Один запрос к API с ретраями
+#'
+#' Отправляет запрос и разбирает ответ. Временные ошибки (коды из
+#' retry_codes, HTTP 5xx, сетевые сбои) повторяются с паузой 1, 2, 4...
+#' секунд, но не больше 60. Остальные ошибки сразу останавливают
+#' выполнение с ошибкой класса yaf_api_error.
+#'
+#' @param login Логин в Яндексе (заголовок Client-Login).
+#' @param service Сервис API, например "campaigns".
+#' @param body Тело запроса: list(method = ..., params = ...).
+#' @param token OAuth-токен.
+#' @param max_retries Максимум повторов при временных ошибках.
+#' @param retry_codes Коды ошибок API, при которых запрос повторяется.
+#'
+#' @return Список с элементами result (поле result ответа API)
+#'   и units (см. yaf_parse_units()).
+#' @keywords internal
+yaf_api_request <- function(login, service, body, token,
+                            max_retries = 5,
+                            retry_codes = c(52, 506, 1000, 1001, 1002)) {
+  attempt <- 0L
+
+  repeat {
+    attempt <- attempt + 1L
+
+    resp <- tryCatch(
+      httr2::request(paste0("https://api.direct.yandex.com/json/v5/", service)) |>
+        httr2::req_headers(
+          Authorization = paste0("Bearer ", token),
+          `Client-Login` = login,
+          `Accept-Language` = "ru"
+        ) |>
+        httr2::req_body_json(body, auto_unbox = TRUE) |>
+        httr2::req_error(is_error = function(resp) FALSE) |>
+        httr2::req_perform(),
+      error = function(e) e
+    )
+
+    retry_reason <- NULL
+
+    if (inherits(resp, "error")) {
+      retry_reason <- paste("Сетевая ошибка:", conditionMessage(resp))
+    } else {
+      status <- httr2::resp_status(resp)
+      parsed <- tryCatch(httr2::resp_body_json(resp), error = function(e) NULL)
+      err <- parsed$error
+
+      if (!is.null(err)) {
+        code <- as.integer(err$error_code)
+        msg <- sprintf("[%s] Ошибка API %s: %s. %s",
+                       service, code, err$error_string, err$error_detail %||% "")
+        if (identical(code, 53L)) {
+          msg <- paste0(msg, " Перевыпустите токен: yaf_get_token('", login, "').")
+        }
+        if (!code %in% retry_codes) {
+          stop(yaf_api_error(msg, code, service, err$request_id %||% NA_character_))
+        }
+        retry_reason <- msg
+      } else if (status >= 500) {
+        retry_reason <- paste("HTTP", status)
+      } else if (status != 200 || is.null(parsed)) {
+        stop(yaf_api_error(
+          sprintf("[%s] HTTP %s: %s", service, status, httr2::resp_body_string(resp)),
+          service = service
+        ))
+      } else {
+        return(list(
+          result = parsed$result,
+          units  = yaf_parse_units(httr2::resp_header(resp, "Units"))
+        ))
+      }
+    }
+
+    if (attempt > max_retries) {
+      stop(yaf_api_error(
+        sprintf("[%s] Запрос не выполнен за %d попыток. Последняя ошибка: %s",
+                service, attempt, retry_reason),
+        service = service
+      ))
+    }
+
+    wait <- min(2^(attempt - 1), 60)
+    # retry_reason подставляется как значение, фигурные скобки в тексте ошибки
+    # не интерпретируются cli
+    cli::cli_inform(c("!" = "{retry_reason} Повтор через {wait} сек. (попытка {attempt}/{max_retries})"))
+    yaf_sleep(wait)
+  }
+}
+
+#' Универсальный get-запрос к API Яндекс Директа
+#'
+#' Выполняет метод get любого сервиса API v5: разбивает id на батчи,
+#' проходит все страницы через LimitedBy, повторяет запрос при временных
+#' ошибках. При неустранимой ошибке останавливается (класс yaf_api_error),
+#' неполный результат не возвращается.
+#'
+#' @param login Логин в Яндексе.
+#' @param service Имя сервиса: "campaigns", "adgroups", "ads", "keywords",
+#'   "bidmodifiers", "negativekeywordsharedsets" и т. д.
+#' @param params Список params запроса: SelectionCriteria, FieldNames,
+#'   <Type>FieldNames. Массивы внутри SelectionCriteria передавайте как list().
+#'   Если сервис требует SelectionCriteria даже для выборки всех объектов
+#'   (например, campaigns), передайте SelectionCriteria = list().
+#' @param batch_ids Вектор id для разбиения на батчи (необязательно).
+#' @param batch_field Поле SelectionCriteria для батчей, например "CampaignIds".
+#' @param batch_size Размер батча. Лимит зависит от сервиса и поля.
+#' @param page_limit Объектов на страницу (максимум 10000).
+#' @param max_retries Максимум повторов при временных ошибках.
+#' @param progress Показывать прогресс-бар.
+#'
+#' @return Список объектов в том виде, в каком их вернул API. Атрибут
+#'   "units" — баллы после последнего запроса, "requests" — число запросов.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' kw <- yaf_api_get(
+#'   "my_login", "keywords",
+#'   params = list(FieldNames = c("Id", "AdGroupId", "Keyword")),
+#'   batch_ids = c(123, 456), batch_field = "CampaignIds"
+#' )
+#' attr(kw, "units")
+#' }
+yaf_api_get <- function(login, service, params = list(),
+                        batch_ids = NULL, batch_field = "CampaignIds",
+                        batch_size = 10, page_limit = 10000,
+                        max_retries = 5, progress = interactive()) {
+  token <- get_yaf_token(login)
+  params <- yaf_prepare_params(params)
+
+  if (!is.null(batch_ids)) {
+    batch_ids <- unique(as.numeric(batch_ids))
+    if (length(batch_ids) == 0) {
+      return(structure(list(), units = yaf_parse_units(NULL), requests = 0L))
+    }
+    batches <- unname(split(batch_ids, ceiling(seq_along(batch_ids) / batch_size)))
+  } else {
+    batches <- list(NULL)
+  }
+
+  pages <- list()
+  units <- yaf_parse_units(NULL)
+  n_requests <- 0L
+
+  show_pb <- progress && length(batches) > 1
+  if (show_pb) {
+    pb <- cli::cli_progress_bar(paste(service, login), total = length(batches), clear = FALSE)
+  }
+
+  for (batch in batches) {
+    offset <- 0
+
+    repeat {
+      p <- params
+      if (!is.null(batch)) p$SelectionCriteria[[batch_field]] <- as.list(batch)
+      p$Page <- list(Limit = page_limit, Offset = offset)
+
+      res <- yaf_api_request(login, service, list(method = "get", params = p),
+                             token, max_retries)
+      n_requests <- n_requests + 1L
+      units <- res$units
+
+      data_field <- setdiff(names(res$result), "LimitedBy")
+      if (length(data_field) > 0) {
+        pages[[length(pages) + 1]] <- res$result[[data_field[1]]]
+      }
+
+      if (is.null(res$result$LimitedBy)) break
+      offset <- res$result$LimitedBy
+    }
+
+    if (show_pb) cli::cli_progress_update(id = pb)
+  }
+
+  if (show_pb) cli::cli_progress_done(id = pb)
+
+  items <- unlist(pages, recursive = FALSE)
+  if (is.null(items)) items <- list()
+  attr(items, "units") <- units
+  attr(items, "requests") <- n_requests
+  items
+}
+
+#' Плоская таблица из объектов API
+#'
+#' Скалярные поля остаются как есть, вложенные разворачиваются через
+#' yaf_flatten_object(): объекты — в колонки с именами через точку,
+#' списки — в строку через "; ".
+#'
+#' @param items Список объектов API, например результат yaf_api_get().
+#'
+#' @return data.frame: одна строка на объект, колонки по полям объектов.
+#'   Для пустого списка — пустой data.frame.
+#' @keywords internal
+yaf_items_to_df <- function(items) {
+  if (length(items) == 0) return(data.frame())
+  dplyr::bind_rows(lapply(items, yaf_flatten_object))
+}
+
+#' Все Id кампаний аккаунта
+#'
+#' @param login Логин в Яндексе.
+#'
+#' @return Числовой вектор Id кампаний.
+#' @keywords internal
+yaf_all_campaign_ids <- function(login) {
+  items <- yaf_api_get(login, "campaigns",
+                       list(SelectionCriteria = list(), FieldNames = "Id"),
+                       progress = FALSE)
+  vapply(items, function(x) as.numeric(x$Id), numeric(1))
+}
+
+#' Плоский список полей из вложенного объекта API
+#'
+#' Вложенные объекты разворачиваются в поля с именами через точку
+#' (BiddingStrategy.Search.BiddingStrategyType). Списки строк вида
+#' list(Items = ...) и массивы скаляров склеиваются через "; ".
+#' Массивы настроек list(Option, Value) превращаются в "OPTION=VALUE; ...".
+#' Остальные массивы объектов сериализуются в JSON-строку.
+#'
+#' @param x Объект API (именованный список).
+#' @param prefix Префикс имён полей для рекурсивного вызова.
+#'
+#' @return Именованный список скаляров.
+#' @keywords internal
+yaf_flatten_object <- function(x, prefix = NULL) {
+  is_scalar <- function(e) is.atomic(e) && length(e) == 1
+  out <- list()
+  for (nm in names(x)) {
+    v <- x[[nm]]
+    key <- if (is.null(prefix)) nm else paste(prefix, nm, sep = ".")
+    if (is.null(v)) {
+      out[[key]] <- NA
+    } else if (is_scalar(v)) {
+      out[[key]] <- v
+    } else if (identical(names(v), "Items")) {
+      out[[key]] <- paste(unlist(v$Items), collapse = "; ")
+    } else if (!is.null(names(v))) {
+      out <- c(out, yaf_flatten_object(v, key))
+    } else if (all(vapply(v, is_scalar, logical(1)))) {
+      out[[key]] <- paste(unlist(v), collapse = "; ")
+    } else if (all(vapply(v, function(e) all(c("Option", "Value") %in% names(e)), logical(1)))) {
+      out[[key]] <- paste(vapply(v, function(e) paste0(e$Option, "=", e$Value), ""),
+                          collapse = "; ")
+    } else {
+      out[[key]] <- as.character(jsonlite::toJSON(v, auto_unbox = TRUE))
+    }
+  }
+  out
+}

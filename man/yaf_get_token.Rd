@@ -9,6 +9,15 @@ yaf_get_token(login)
 \arguments{
 \item{login}{Character. Your Yandex login.}
 }
+\value{
+The token (character), invisibly.
+}
 \description{
 Opens a browser to get an OAuth token and saves it to a local RDS file for future use.
+The token is stored in \code{tools::R_user_dir("yaf", "config")} as \verb{<login>.rds}.
+}
+\examples{
+\dontrun{
+yaf_get_token("my_login")
+}
 }

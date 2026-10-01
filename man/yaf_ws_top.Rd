@@ -17,6 +17,15 @@ yaf_ws_top(phrase, token, region_id = 225, top_n = 2000, depth_limit = NULL)
 
 \item{depth_limit}{Порог частотности для парсинга вглубь. Если частота фразы выше этого числа, скрипт соберет вложенные запросы для нее.}
 }
+\value{
+data.frame с колонками phrase и count, отсортированный по
+убыванию частоты. Если данных нет — NULL.
+}
 \description{
 Получение популярных запросов из Wordstat с автоматическим углублением
+}
+\examples{
+\dontrun{
+top <- yaf_ws_top(c("купить слона"), token = "wordstat_token", region_id = 213)
+}
 }

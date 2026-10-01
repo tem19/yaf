@@ -4,15 +4,37 @@
 \alias{yaf_get_adgroups}
 \title{Получение списка групп объявлений из Яндекс Директа}
 \usage{
-yaf_get_adgroups(login, campaign_ids = NULL)
+yaf_get_adgroups(
+  login,
+  campaign_ids = NULL,
+  fields = c("Id", "CampaignId", "Name", "Status", "Type"),
+  type_fields = list(),
+  raw = FALSE
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
 
 \item{campaign_ids}{Вектор ID кампаний (необязательно).}
 
-\item{adgroup_ids}{Вектор ID конкретных групп (необязательно).}
+\item{fields}{Вектор полей из FieldNames сервиса.}
+
+\item{type_fields}{Именованный список тип-специфичных полей,
+например list(TextAdGroupFeedParamsFieldNames = c("FeedId")).}
+
+\item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+}
+\value{
+data.frame с колонками adgroup_id, campaign_id, adgroup_name,
+status, type и остальными запрошенными полями. Вложенные объекты
+развёрнуты в колонки через точку, списки (RegionIds, NegativeKeywords)
+склеены через "; ". При raw = TRUE — список объектов API.
 }
 \description{
 Получение списка групп объявлений из Яндекс Директа
+}
+\examples{
+\dontrun{
+groups <- yaf_get_adgroups("my_login", campaign_ids = c(123, 456))
+}
 }

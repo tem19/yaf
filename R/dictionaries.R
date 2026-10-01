@@ -5,7 +5,14 @@
 #'
 #' @param login Логин в Яндексе.
 #'
+#' @return data.frame с колонками region_id, parent_id, region_name,
+#'   region_type. При ошибке API — NULL.
 #' @export
+#'
+#' @examples
+#' \dontrun{
+#' regions <- yaf_get_regions("my_login")
+#' }
 yaf_get_regions <- function(login) {
 
   token <- get_yaf_token(login)

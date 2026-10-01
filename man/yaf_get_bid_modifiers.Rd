@@ -4,7 +4,23 @@
 \alias{yaf_get_bid_modifiers}
 \title{Получение корректировок ставок из Яндекс Директа}
 \usage{
-yaf_get_bid_modifiers(login, campaign_ids = NULL, adgroup_ids = NULL)
+yaf_get_bid_modifiers(
+  login,
+  campaign_ids = NULL,
+  adgroup_ids = NULL,
+  type_fields = list(MobileAdjustmentFieldNames = c("BidModifier"),
+    TabletAdjustmentFieldNames = c("BidModifier"), DesktopAdjustmentFieldNames =
+    c("BidModifier"), DesktopOnlyAdjustmentFieldNames = c("BidModifier"),
+    DemographicsAdjustmentFieldNames = c("Gender", "Age", "BidModifier"),
+    RetargetingAdjustmentFieldNames = c("RetargetingConditionId", "BidModifier"),
+    RegionalAdjustmentFieldNames = c("RegionId", "BidModifier"),
+    VideoAdjustmentFieldNames = c("BidModifier"), SmartAdAdjustmentFieldNames =
+    c("BidModifier"), 
+     SerpLayoutAdjustmentFieldNames = c("SerpLayout",
+    "BidModifier"), IncomeGradeAdjustmentFieldNames = c("Grade", "BidModifier"),
+    AdGroupAdjustmentFieldNames = c("BidModifier")),
+  raw = FALSE
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,7 +28,23 @@ yaf_get_bid_modifiers(login, campaign_ids = NULL, adgroup_ids = NULL)
 \item{campaign_ids}{Вектор ID кампаний (необязательно).}
 
 \item{adgroup_ids}{Вектор ID групп (необязательно).}
+
+\item{type_fields}{Именованный список тип-специфичных полей,
+например list(MobileAdjustmentFieldNames = c("BidModifier")).}
+
+\item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+}
+\value{
+data.frame с колонками modifier_id, campaign_id, adgroup_id,
+level, type, value (коэффициент в процентах) и condition (условие
+корректировки, например "GENDER_MALE AGE_25_34" или id региона).
+При raw = TRUE — список объектов API.
 }
 \description{
 Получение корректировок ставок из Яндекс Директа
+}
+\examples{
+\dontrun{
+mods <- yaf_get_bid_modifiers("my_login", campaign_ids = c(123, 456))
+}
 }
