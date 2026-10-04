@@ -18,7 +18,7 @@ yaf_get_report(
   include_vat = TRUE,
   save_report = FALSE,
   save_dir = "reports",
-  max_tries = 60L
+  max_tries = 600L
 )
 }
 \arguments{
