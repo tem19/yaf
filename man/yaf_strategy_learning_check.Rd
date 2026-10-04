@@ -60,6 +60,18 @@ PriorityGoals. GoalId = 0 означает все цели кампании: т�
 кампаниям этой стратегии и всем площадкам — обучается стратегия
 целиком. У таких строк Platform = "ALL".
 }
+\section{Ограничения}{
+
+\itemize{
+\item Статус приблизительный: Директ не публикует критерии обучения
+полностью, функция проверяет только порог конверсий за период.
+\item Конверсии берутся из отчёта за полные дни (по вчера), данные
+за сегодня не учитываются.
+\item Для мобильных кампаний цели стратегии — события AppMetrica;
+их поддержка в отчётах не проверялась.
+}
+}
+
 \examples{
 \dontrun{
 learning <- yaf_strategy_learning_check("my_login")
@@ -69,4 +81,8 @@ learning[learning$Status == "low_data", ]
 yaf_strategy_learning_check("my_login", campaign_ids = 123,
                             goal_ids = 456789, min_conversions = 20)
 }
+}
+\seealso{
+\code{\link[=yaf_get_campaigns]{yaf_get_campaigns()}} — стратегии кампаний,
+\code{\link[=yaf_get_report]{yaf_get_report()}} — конверсии по целям.
 }
