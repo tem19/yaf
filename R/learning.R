@@ -189,7 +189,6 @@ yaf_strategy_learning_check <- function(login,
       StrategyMaximumConversionRateFieldNames = "GoalId",
       StrategyAverageCpaFieldNames = "GoalId",
       StrategyPayForConversionFieldNames = "GoalId",
-      StrategyPayForConversionMultipleGoalsFieldNames = "GoalId",
       StrategyAverageCrrFieldNames = "GoalId",
       StrategyPayForConversionCrrFieldNames = "GoalId"
     ), batch_ids = package_ids, batch_field = "Ids", batch_size = 1000,
