@@ -2,18 +2,19 @@
 % Please edit documentation in R/auth.R
 \name{get_yaf_token}
 \alias{get_yaf_token}
-\title{Internal function to retrieve token}
+\title{Чтение сохранённого токена}
 \usage{
 get_yaf_token(login)
 }
 \arguments{
-\item{login}{Character. Yandex login.}
+\item{login}{Логин в Яндексе.}
 }
 \value{
-The token (character).
+Токен (строка).
 }
 \description{
-Reads the token saved by yaf_get_token(). If the file is missing, starts
-yaf_get_token() in an interactive session and stops with an error otherwise.
+Читает токен, сохранённый yaf_get_token(). Если файла нет, в
+интерактивной сессии запускает yaf_get_token(), в неинтерактивной
+(Rscript, cron) останавливается с ошибкой.
 }
 \keyword{internal}

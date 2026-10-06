@@ -1,5 +1,7 @@
 ---
-output: github_document
+output:
+  github_document:
+    html_preview: false
 ---
 
 # yaf <img src="man/figures/logo.png" align="right" height="139"/>
@@ -123,7 +125,7 @@ yaf_get_report(login = "your_yandex_login")
 
 `save_dir` - путь к папке для сохранения отчета (по умолчанию `"reports"`). Учитывается только при `save_report = TRUE`
 
-`max_tries` - максимальное количество попыток опроса отчета до остановки (по умолчанию 60). Если отчет не готов за это время, функция завершится с ошибкой
+`max_tries` - максимальное количество попыток опроса отчета до остановки (по умолчанию 600, опрос раз в 2 секунды — около 20 минут). Если отчет не готов за это время, функция завершится с ошибкой
 
 ### Пример использования
 
@@ -161,12 +163,45 @@ campaigns <- yaf_get_campaigns("your_yandex_login")
 
 При ошибке API функции останавливаются с ошибкой класса `yaf_api_error`, неполные данные не возвращаются.
 
+## yaf_get_adgroups() и yaf_get_ads() - группы и объявления
+
+`yaf_get_adgroups()` выгружает группы объявлений по кампаниям (`campaign_ids`), `yaf_get_ads()` — объявления по кампаниям, группам (`adgroup_ids`) или конкретным id (`ad_ids`). Если id не заданы, берутся все кампании аккаунта.
+
+```         
+groups <- yaf_get_adgroups("your_yandex_login", campaign_ids = c(123, 456))
+ads <- yaf_get_ads("your_yandex_login", campaign_ids = c(123, 456))
+```
+
+## yaf_get_bid_modifiers() - корректировки ставок
+
+Выгружает корректировки ставок на уровне кампаний и групп: по устройствам, полу и возрасту, ретаргетингу, регионам, типу выдачи, уровню дохода и др. Значение корректировки — в колонке `value` (в процентах), условие — в `condition`.
+
+```         
+mods <- yaf_get_bid_modifiers("your_yandex_login", campaign_ids = c(123, 456))
+```
+
 ## yaf_get_keywords() - выгрузка ключевых фраз
 
 Выгружает ключевые фразы по кампаниям (`campaign_ids`) или группам (`adgroup_ids`). Если ничего не указано, берутся все кампании аккаунта. Фраза дополнительно разбивается на колонки `KeywordPhrase` (фраза без минус-слов) и `KeywordMinusWords` (минус-слова через точку с запятой).
 
 ```         
 kw <- yaf_get_keywords("your_yandex_login", campaign_ids = c(123, 456))
+```
+
+## yaf_get_negative_keyword_sets() - наборы минус-фраз
+
+Выгружает наборы минус-фраз аккаунта (все или по `ids`): название, минус-фразы через точку с запятой и признак привязки к кампаниям или группам. Id наборов, привязанных к кампании, есть в колонке `NegativeKeywordSharedSetIds` результата `yaf_get_campaigns()`.
+
+```         
+sets <- yaf_get_negative_keyword_sets("your_yandex_login")
+```
+
+## yaf_get_regions() - справочник регионов
+
+Возвращает дерево регионов Директа: `region_id`, `parent_id`, `region_name`, `region_type`.
+
+```         
+regions <- yaf_get_regions("your_yandex_login")
 ```
 
 ## Отслеживание изменений в аккаунте
