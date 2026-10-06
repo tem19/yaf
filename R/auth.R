@@ -1,10 +1,13 @@
-#' Get and save Yandex Direct Token to RDS
+#' Получение и сохранение токена Яндекс Директа
 #'
-#' @param login Character. Your Yandex login.
-#' @description Opens a browser to get an OAuth token and saves it to a local RDS file for future use.
-#'   The token is stored in `tools::R_user_dir("yaf", "config")` as `<login>.rds`.
+#' Открывает в браузере страницу авторизации Яндекса, просит вставить
+#' полученный OAuth-токен в консоль и сохраняет его в файл `<login>.rds`
+#' в папке `tools::R_user_dir("yaf", "config")`. Остальные функции пакета
+#' читают токен из этого файла. Работает только в интерактивной сессии.
 #'
-#' @return The token (character), invisibly.
+#' @param login Логин в Яндексе.
+#'
+#' @return Токен (строка), невидимо.
 #' @export
 #'
 #' @examples
@@ -56,14 +59,15 @@ yaf_get_token <- function(login) {
   return(invisible(token))
 }
 
-#' Internal function to retrieve token
+#' Чтение сохранённого токена
 #'
-#' Reads the token saved by yaf_get_token(). If the file is missing, starts
-#' yaf_get_token() in an interactive session and stops with an error otherwise.
+#' Читает токен, сохранённый yaf_get_token(). Если файла нет, в
+#' интерактивной сессии запускает yaf_get_token(), в неинтерактивной
+#' (Rscript, cron) останавливается с ошибкой.
 #'
-#' @param login Character. Yandex login.
+#' @param login Логин в Яндексе.
 #'
-#' @return The token (character).
+#' @return Токен (строка).
 #' @keywords internal
 get_yaf_token <- function(login) {
   conf_dir <- tools::R_user_dir("yaf", which = "config")

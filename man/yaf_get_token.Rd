@@ -2,19 +2,21 @@
 % Please edit documentation in R/auth.R
 \name{yaf_get_token}
 \alias{yaf_get_token}
-\title{Get and save Yandex Direct Token to RDS}
+\title{Получение и сохранение токена Яндекс Директа}
 \usage{
 yaf_get_token(login)
 }
 \arguments{
-\item{login}{Character. Your Yandex login.}
+\item{login}{Логин в Яндексе.}
 }
 \value{
-The token (character), invisibly.
+Токен (строка), невидимо.
 }
 \description{
-Opens a browser to get an OAuth token and saves it to a local RDS file for future use.
-The token is stored in \code{tools::R_user_dir("yaf", "config")} as \verb{<login>.rds}.
+Открывает в браузере страницу авторизации Яндекса, просит вставить
+полученный OAuth-токен в консоль и сохраняет его в файл \verb{<login>.rds}
+в папке \code{tools::R_user_dir("yaf", "config")}. Остальные функции пакета
+читают токен из этого файла. Работает только в интерактивной сессии.
 }
 \examples{
 \dontrun{
