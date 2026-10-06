@@ -1,5 +1,16 @@
 # yaf NEWS
 
+## 0.9.1
+
+### Документация
+- Справка `yaf_get_token()` переведена на русский, как у остальных функций.
+- В справке `yaf_fields_info` описаны все колонки таблицы.
+- В README добавлены разделы про `yaf_get_adgroups()`, `yaf_get_ads()`,
+  `yaf_get_bid_modifiers()`, `yaf_get_negative_keyword_sets()` и
+  `yaf_get_regions()`; исправлено значение `max_tries` по умолчанию (600).
+- В NEWS добавлены пропущенные версии 0.5.0–0.7.0.
+- Обновлено описание пакета в DESCRIPTION, удалён устаревший README.html.
+
 ## 0.9.0
 
 ### Новое
