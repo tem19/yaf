@@ -1,5 +1,19 @@
 # yaf NEWS
 
+## 0.10.0
+
+### Изменения поведения
+- `yaf_ws_top()` переведена на новый API Wordstat из Yandex Search API
+  (`searchapi.api.cloud.yandex.net/v2/wordstat/topRequests`). Вместо
+  OAuth-токена `token` нужен API-ключ сервисного аккаунта (`api_key`,
+  переменная `YANDEX_SEARCH_API_KEY`) или IAM-токен (`iam_token`) и ID
+  каталога (`folder_id`, переменная `YANDEX_FOLDER_ID`).
+- Новый аргумент `devices`: `"all"`, `"desktop"`, `"phone"`, `"tablet"`.
+- `region_id` принимает вектор регионов, `NULL` значит все регионы.
+- Ошибки API Wordstat выбрасываются с классом `yaf_api_error`.
+- При углублении фразы, совпадающие с исходными масками, не
+  запрашиваются повторно, чтобы экономить часовую квоту (100 запросов).
+
 ## 0.9.0
 
 ### Новое

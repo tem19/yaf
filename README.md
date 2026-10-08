@@ -272,11 +272,24 @@ API Директа не отдаёт статус обучения страте�
 
 ### Авторизация
 
-Обратите внимание, что для работы с API Wordstat нужен отдельный токен.
-Тот, который используется для Директа, не подходит. Чтобы получить токен
-для Wordstat нужно отправить заявку - [тут подробно описан процесс
-получения
-токена](https://yandex.ru/support2/wordstat/ru/content/api-wordstat)
+API Wordstat теперь работает через Yandex Search API в [AI Studio](https://aistudio.yandex.ru/en/docs/search-api/concepts/wordstat). Токен Директа и старый OAuth-токен Wordstat не подходят. Что нужно:
+
+1. Создать сервисный аккаунт с ролью `search-api.webSearch.user`.
+2. Выпустить для него API-ключ с областью действия `yc.search-api.execute`.
+3. Скопировать ID каталога (folder_id), в котором создан аккаунт.
+
+Ключ и каталог можно передать аргументами или задать в `.Renviron`:
+
+```
+YANDEX_SEARCH_API_KEY=AQVN...
+YANDEX_FOLDER_ID=b1g...
+```
+
+```r
+top <- yaf_ws_top("купить слона", region_id = 213, depth_limit = 1000)
+```
+
+Квоты: 10 запросов в секунду и 100 запросов в час.
 
 ### Поддержка
 
