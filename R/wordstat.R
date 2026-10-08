@@ -7,7 +7,6 @@
 #' @param api_key API-ключ сервисного аккаунта с областью действия
 #'   `yc.search-api.execute`. Аккаунту нужна роль `search-api.webSearch.user`.
 #'   По умолчанию берётся из переменной окружения `YANDEX_SEARCH_API_KEY`.
-#' @param iam_token IAM-токен. Можно передать вместо `api_key`.
 #' @param folder_id ID каталога в Yandex Cloud, в котором создан сервисный
 #'   аккаунт. По умолчанию берётся из переменной окружения `YANDEX_FOLDER_ID`.
 #' @param region_id Вектор ID регионов (213 - Мск, 225 - РФ, по умолчанию 225).
@@ -32,7 +31,6 @@
 #' }
 yaf_ws_top <- function(phrase,
                        api_key = Sys.getenv("YANDEX_SEARCH_API_KEY"),
-                       iam_token = NULL,
                        folder_id = Sys.getenv("YANDEX_FOLDER_ID"),
                        region_id = 225,
                        devices = "all",
@@ -40,14 +38,11 @@ yaf_ws_top <- function(phrase,
                        depth_limit = NULL) {
 
   # 1. Проверка входных данных
-  if (!is.null(iam_token) && nzchar(iam_token)) {
-    auth <- paste("Bearer", iam_token)
-  } else if (!is.null(api_key) && nzchar(api_key)) {
-    auth <- paste("Api-Key", api_key)
-  } else {
-    stop("Нужен 'api_key' (или переменная окружения YANDEX_SEARCH_API_KEY) ",
-         "либо 'iam_token'.", call. = FALSE)
+  if (is.null(api_key) || !nzchar(api_key)) {
+    stop("Нужен 'api_key' (или переменная окружения YANDEX_SEARCH_API_KEY).",
+         call. = FALSE)
   }
+  auth <- paste("Api-Key", api_key)
   if (is.null(folder_id) || !nzchar(folder_id)) {
     stop("Нужен 'folder_id' (или переменная окружения YANDEX_FOLDER_ID).",
          call. = FALSE)
@@ -83,7 +78,7 @@ yaf_ws_top <- function(phrase,
       if (is.list(parsed) && !is.null(parsed$message)) error_msg <- parsed$message
 
       hint <- switch(as.character(status),
-        "401" = "Проверьте API-ключ или IAM-токен.",
+        "401" = "Проверьте API-ключ.",
         "403" = "Проверьте роль search-api.webSearch.user и folder_id.",
         "429" = "Превышена квота: 10 запросов в секунду, 100 запросов в час.",
         NULL

@@ -29,22 +29,19 @@ test_that("yaf_ws_top отправляет запрос в новом форма
                                count = c(200, 100)))
 })
 
-test_that("yaf_ws_top: IAM-токен и ошибка API", {
+test_that("yaf_ws_top: ошибка API", {
   mock_env()
-  req_seen <- NULL
   httr2::local_mocked_responses(function(req) {
-    req_seen <<- req
     httr2::response_json(status_code = 403,
                          body = list(code = 7, message = "Permission denied"))
   })
 
   err <- tryCatch(
-    suppressMessages(yaf_ws_top("слон", api_key = "", iam_token = "t1.abc",
+    suppressMessages(yaf_ws_top("слон", api_key = "key",
                                 folder_id = "folder")),
     yaf_api_error = function(e) e
   )
   expect_s3_class(err, "yaf_api_error")
-  expect_equal(httr2::req_get_headers(req_seen, "reveal")$Authorization, "Bearer t1.abc")
   expect_match(conditionMessage(err), "Permission denied")
   expect_equal(err$code, 403)
 })
