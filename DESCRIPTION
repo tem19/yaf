@@ -1,6 +1,6 @@
 Package: yaf
 Title: Yandex Direct API Functions
-Version: 0.9.1
+Version: 0.10.0
 Authors@R: 
     person("Artem", "Rogozhin", , "tem19@live.ru", role = c("aut", "cre"))
 Description: Functions for the Yandex Direct API v5 and the Wordstat API:

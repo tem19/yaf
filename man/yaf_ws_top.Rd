@@ -4,16 +4,35 @@
 \alias{yaf_ws_top}
 \title{Получение популярных запросов из Wordstat с автоматическим углублением}
 \usage{
-yaf_ws_top(phrase, token, region_id = 225, top_n = 2000, depth_limit = NULL)
+yaf_ws_top(
+  phrase,
+  api_key = Sys.getenv("YANDEX_SEARCH_API_KEY"),
+  iam_token = NULL,
+  folder_id = Sys.getenv("YANDEX_FOLDER_ID"),
+  region_id = 225,
+  devices = "all",
+  top_n = 2000,
+  depth_limit = NULL
+)
 }
 \arguments{
-\item{phrase}{Вектор базовых фраз (масок).}
+\item{phrase}{Вектор базовых фраз (масок), до 400 символов каждая.}
 
-\item{token}{Ваш OAuth-токен Яндекс Wordstat (обязателен).}
+\item{api_key}{API-ключ сервисного аккаунта с областью действия
+\code{yc.search-api.execute}. Аккаунту нужна роль \code{search-api.webSearch.user}.
+По умолчанию берётся из переменной окружения \code{YANDEX_SEARCH_API_KEY}.}
 
-\item{region_id}{ID региона (213 - Мск, 225 - РФ, по умолчанию 225).}
+\item{iam_token}{IAM-токен. Можно передать вместо \code{api_key}.}
 
-\item{top_n}{Лимит фраз на один запрос (макс 2000).}
+\item{folder_id}{ID каталога в Yandex Cloud, в котором создан сервисный
+аккаунт. По умолчанию берётся из переменной окружения \code{YANDEX_FOLDER_ID}.}
+
+\item{region_id}{Вектор ID регионов (213 - Мск, 225 - РФ, по умолчанию 225).
+\code{NULL} — все регионы.}
+
+\item{devices}{Устройства: \code{"all"}, \code{"desktop"}, \code{"phone"}, \code{"tablet"}.}
+
+\item{top_n}{Лимит фраз на один запрос (от 1 до 2000).}
 
 \item{depth_limit}{Порог частотности для парсинга вглубь. Если частота фразы выше этого числа, скрипт соберет вложенные запросы для нее.}
 }
@@ -22,10 +41,18 @@ data.frame с колонками phrase и count, отсортированный
 убыванию частоты. Если данных нет — NULL.
 }
 \description{
-Получение популярных запросов из Wordstat с автоматическим углублением
+Использует метод GetTop API Wordstat из Yandex Search API (AI Studio).
+Возвращает данные за последние 30 дней.
 }
+\section{Ограничения}{
+
+Квоты API: 10 запросов в секунду и 100 запросов в час. Каждая фраза
+(и каждая фраза при углублении) — отдельный запрос.
+}
+
 \examples{
 \dontrun{
-top <- yaf_ws_top(c("купить слона"), token = "wordstat_token", region_id = 213)
+top <- yaf_ws_top("купить слона", api_key = "AQVN...",
+                  folder_id = "b1g...", region_id = 213)
 }
 }
