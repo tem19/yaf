@@ -3,7 +3,10 @@ Title: Yandex Direct API Functions
 Version: 0.10.0
 Authors@R: 
     person("Artem", "Rogozhin", , "tem19@live.ru", role = c("aut", "cre"))
-Description: This package import reports from Yandex Direct API.
+Description: Functions for the Yandex Direct API v5 and the Wordstat API:
+    statistics reports, campaigns, ad groups, ads, keywords, bid modifiers,
+    negative keyword sets, regions, change tracking and a strategy learning
+    check. Handles OAuth tokens, batching, pagination and retries.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
