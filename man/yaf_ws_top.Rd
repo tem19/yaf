@@ -7,7 +7,6 @@
 yaf_ws_top(
   phrase,
   api_key = Sys.getenv("YANDEX_SEARCH_API_KEY"),
-  iam_token = NULL,
   folder_id = Sys.getenv("YANDEX_FOLDER_ID"),
   region_id = 225,
   devices = "all",
@@ -21,8 +20,6 @@ yaf_ws_top(
 \item{api_key}{API-ключ сервисного аккаунта с областью действия
 \code{yc.search-api.execute}. Аккаунту нужна роль \code{search-api.webSearch.user}.
 По умолчанию берётся из переменной окружения \code{YANDEX_SEARCH_API_KEY}.}
-
-\item{iam_token}{IAM-токен. Можно передать вместо \code{api_key}.}
 
 \item{folder_id}{ID каталога в Yandex Cloud, в котором создан сервисный
 аккаунт. По умолчанию берётся из переменной окружения \code{YANDEX_FOLDER_ID}.}
