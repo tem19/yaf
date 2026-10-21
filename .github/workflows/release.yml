@@ -1,0 +1,39 @@
+# Создаёт тег и GitHub-релиз, когда в master приходит новая версия пакета.
+# Версия берётся из DESCRIPTION, текст релиза — из раздела "## <версия>" в NEWS.md.
+name: Release
+
+on:
+  push:
+    branches: [master]
+    paths: [DESCRIPTION]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create release if version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(grep '^Version:' DESCRIPTION | awk '{print $2}')
+          tag="v$version"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "Тег $tag уже есть, релиз не нужен."
+            exit 0
+          fi
+
+          awk -v v="## $version" '$0==v{f=1;next} /^## /{f=0} f' NEWS.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::В NEWS.md нет раздела '## $version'."
+            exit 1
+          fi
+
+          gh release create "$tag" --target "$GITHUB_SHA" \
+            --title "yaf $version" --notes-file notes.md
