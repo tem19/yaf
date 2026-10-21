@@ -14,7 +14,8 @@
 #' @param save_report Логическое значение. Если TRUE, сохраняет CSV.
 #' @param save_dir Путь к папке для сохранения отчета (по умолчанию "reports").
 #' @param max_tries Максимальное количество попыток опроса отчета до остановки.
-#'   Попытки идут раз в 2 секунды: 600 попыток — около 20 минут ожидания.
+#'   Попытки идут не чаще раза в 10 секунд (лимит API): 120 попыток — около
+#'   20 минут ожидания.
 #'
 #' @return data.frame с запрошенными полями отчета.
 #' @export
@@ -37,7 +38,7 @@ yaf_get_report <- function(login,
                            include_vat = TRUE,
                            save_report = FALSE,
                            save_dir = "reports",
-                           max_tries = 600L) {
+                           max_tries = 120L) {
 
   # Валидация аргументов
   if (missing(login) || is.null(login) || !is.character(login) || length(login) != 1L || !nzchar(login)) {
@@ -106,7 +107,8 @@ yaf_get_report <- function(login,
   body <- list(
     params = list(
       SelectionCriteria = selection_criteria,
-      FieldNames = fields,
+      # as.list: иначе одно поле уйдёт строкой, а не массивом, и API вернёт ошибку
+      FieldNames = as.list(fields),
       Page = list(Limit = 2000000L),
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
       ReportType = ReportType,
@@ -147,7 +149,35 @@ yaf_get_report <- function(login,
         skipReportHeader = "true"
       ) |>
       httr2::req_body_json(body, auto_unbox = TRUE) |>
+      # Не даём httr2 падать на 4xx/5xx: иначе теряется текст ошибки от API
+      httr2::req_error(is_error = function(resp) FALSE) |>
       httr2::req_perform()
+  }
+
+  # Ошибка из JSON-ответа API ({"error": {...}}) или NULL. Content-Type у
+  # ответа reports не всегда JSON, поэтому разбираем тело как строку
+  api_error <- function(resp) {
+    parsed <- tryCatch(
+      jsonlite::fromJSON(httr2::resp_body_string(resp), simplifyVector = FALSE),
+      error = function(e) NULL
+    )
+    if (is.list(parsed)) parsed$error else NULL
+  }
+
+  # Текст ошибки API или тело ответа как есть
+  api_error_message <- function(resp) {
+    status <- httr2::resp_status(resp)
+    err <- api_error(resp)
+    msg <- if (!is.null(err)) {
+      sprintf("[reports] Ошибка API %s: %s. %s", err$error_code,
+              err$error_string, err$error_detail %||% "")
+    } else {
+      sprintf("[reports] HTTP %s: %s", status, httr2::resp_body_string(resp))
+    }
+    if (status == 401 || identical(as.integer(err$error_code), 53L)) {
+      msg <- paste0(msg, " Перевыпустите токен: yaf_get_token('", login, "').")
+    }
+    msg
   }
 
   cat("Запрос отправлен. Период:", PeriodType, "| Логин:", login, "\n")
@@ -158,10 +188,16 @@ yaf_get_report <- function(login,
   attempt <- 1L
 
   while(resp_status != 200 && attempt < max_tries) {
-    if (resp_status %in% c(400, 401, 500)) {
-      stop(paste("Ошибка API:", resp_status, httr2::resp_body_string(req)))
+    # 201/202 — отчёт формируется, 502-504 — временный сбой,
+    # ошибка 56 — превышен лимит запросов метода, остальное — ошибка
+    rate_limited <- identical(as.integer(api_error(req)$error_code), 56L)
+    if (!resp_status %in% c(201, 202, 502, 503, 504) && !rate_limited) {
+      stop(yaf_api_error(api_error_message(req), service = "reports"))
     }
-    Sys.sleep(2)
+    # API разрешает опрашивать reports не чаще раза в 10 секунд;
+    # заголовок retryIn подсказывает, когда отчёт может быть готов
+    retry_in <- suppressWarnings(as.numeric(httr2::resp_header(req, "retryIn")))
+    yaf_sleep(max(10, retry_in, na.rm = TRUE))
     req <- send_request()
     resp_status <- httr2::resp_status(req)
     attempt <- attempt + 1L
