@@ -89,3 +89,14 @@ test_that("пустой список не делает запросов", {
   expect_equal(nrow(yaf_add_ads("login", list())), 0)
   expect_equal(nrow(yaf_delete_campaigns("login", numeric(0))), 0)
 })
+
+test_that("yaf_api_call отправляет пустой SelectionCriteria объектом", {
+  mock_env()
+  body <- NULL
+  httr2::local_mocked_responses(function(req) {
+    body <<- req$body$data
+    httr2::response_json(body = list(result = list(Campaigns = list())))
+  })
+  yaf_api_call("login", "campaigns", "get", list(SelectionCriteria = list(), FieldNames = "Id"))
+  expect_match(as.character(jsonlite::toJSON(body, auto_unbox = TRUE)), '"SelectionCriteria":\\{\\},"FieldNames":\\["Id"\\]')
+})

@@ -29,6 +29,7 @@
 yaf_api_call <- function(login, service, method, params = list(), version = "v5",
                          max_retries = 5, retry_network = identical(method, "get")) {
   token <- get_yaf_token(login)
+  params <- yaf_prepare_params(params)
   res <- yaf_api_request(login, service, list(method = method, params = params), token,
                          max_retries, version = version, retry_network = retry_network)
   out <- res$result
