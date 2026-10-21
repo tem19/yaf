@@ -10,7 +10,9 @@ yaf_api_request(
   body,
   token,
   max_retries = 5,
-  retry_codes = c(52, 506, 1000, 1001, 1002)
+  retry_codes = c(52, 506, 1000, 1001, 1002),
+  version = "v5",
+  retry_network = TRUE
 )
 }
 \arguments{
@@ -25,6 +27,12 @@ yaf_api_request(
 \item{max_retries}{Максимум повторов при временных ошибках.}
 
 \item{retry_codes}{Коды ошибок API, при которых запрос повторяется.}
+
+\item{version}{Версия API в адресе: "v5" или "v501" (единые перфоманс-кампании).}
+
+\item{retry_network}{Повторять ли запрос при сетевой ошибке и HTTP 5xx.
+Для изменяющих методов (add и т. п.) FALSE: запрос мог выполниться,
+и повтор создал бы дубли.}
 }
 \value{
 Список с элементами result (поле result ответа API)

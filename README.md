@@ -297,6 +297,37 @@ API Директа не отдаёт статус обучения страте�
     )
     attr(kw, "units")
 
+## Создание объектов и действия с ними
+
+`yaf_add_campaigns()`, `yaf_add_adgroups()`, `yaf_add_keywords()`,
+`yaf_add_ads()`, `yaf_add_sitelinks()`, `yaf_add_adextensions()` —
+метод `add` соответствующего сервиса. Объекты режутся на батчи по лимиту
+сервиса, результат — таблица `Id`, `Errors`, `Warnings` в порядке
+переданных объектов. Ошибка отдельного объекта не останавливает
+выполнение, она в колонке `Errors`.
+
+Кампании и группы по умолчанию создаются через версию API `v501`: только
+так можно создать единую перфоманс-кампанию (`UnifiedCampaign`,
+`UnifiedAdGroup`). Массивы в объектах передавайте как `list()`:
+`RegionIds = list(213)`.
+
+`yaf_moderate_ads()`, `yaf_suspend_campaigns()`, `yaf_resume_campaigns()`,
+`yaf_delete_campaigns()` — действия по вектору Id.
+
+Изменяющие запросы не повторяются при сетевой ошибке и HTTP 5xx: запрос
+мог выполниться, и повтор создал бы дубли. Для остальных методов —
+`yaf_api_call(login, service, method, params, version)`.
+
+    camp <- yaf_add_campaigns("your_yandex_login", list(list(
+      Name = "Поиск | Москва", StartDate = format(Sys.Date()),
+      UnifiedCampaign = list(BiddingStrategy = list(
+        Search = list(BiddingStrategyType = "WB_MAXIMUM_CLICKS",
+                      WbMaximumClicks = list(WeeklySpendLimit = 3e9)),
+        Network = list(BiddingStrategyType = "SERVING_OFF")
+      ))
+    )))
+    camp$Id
+
 # Работа с API Wordstat
 
 ## yaf_ws_top() - сбор топовых запросов из Вордстата

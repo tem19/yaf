@@ -90,20 +90,25 @@ yaf_prepare_params <- function(params) {
 #' @param token OAuth-токен.
 #' @param max_retries Максимум повторов при временных ошибках.
 #' @param retry_codes Коды ошибок API, при которых запрос повторяется.
+#' @param version Версия API в адресе: "v5" или "v501" (единые перфоманс-кампании).
+#' @param retry_network Повторять ли запрос при сетевой ошибке и HTTP 5xx.
+#'   Для изменяющих методов (add и т. п.) FALSE: запрос мог выполниться,
+#'   и повтор создал бы дубли.
 #'
 #' @return Список с элементами result (поле result ответа API)
 #'   и units (см. yaf_parse_units()).
 #' @keywords internal
 yaf_api_request <- function(login, service, body, token,
                             max_retries = 5,
-                            retry_codes = c(52, 506, 1000, 1001, 1002)) {
+                            retry_codes = c(52, 506, 1000, 1001, 1002),
+                            version = "v5", retry_network = TRUE) {
   attempt <- 0L
 
   repeat {
     attempt <- attempt + 1L
 
     resp <- tryCatch(
-      httr2::request(paste0("https://api.direct.yandex.com/json/v5/", service)) |>
+      httr2::request(paste0("https://api.direct.yandex.com/json/", version, "/", service)) |>
         httr2::req_headers(
           Authorization = paste0("Bearer ", token),
           `Client-Login` = login,
@@ -119,6 +124,10 @@ yaf_api_request <- function(login, service, body, token,
 
     if (inherits(resp, "error")) {
       retry_reason <- paste("Сетевая ошибка:", conditionMessage(resp))
+      if (!retry_network) {
+        stop(yaf_api_error(sprintf("[%s] %s. Запрос не повторяется: он мог выполниться",
+                                   service, retry_reason), service = service))
+      }
     } else {
       status <- httr2::resp_status(resp)
       parsed <- tryCatch(httr2::resp_body_json(resp), error = function(e) NULL)
@@ -137,6 +146,10 @@ yaf_api_request <- function(login, service, body, token,
         retry_reason <- msg
       } else if (status >= 500) {
         retry_reason <- paste("HTTP", status)
+        if (!retry_network) {
+          stop(yaf_api_error(sprintf("[%s] %s. Запрос не повторяется: он мог выполниться",
+                                     service, retry_reason), service = service))
+        }
       } else if (status != 200 || is.null(parsed)) {
         stop(yaf_api_error(
           sprintf("[%s] HTTP %s: %s", service, status, httr2::resp_body_string(resp)),
