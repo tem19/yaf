@@ -106,7 +106,8 @@ yaf_get_report <- function(login,
   body <- list(
     params = list(
       SelectionCriteria = selection_criteria,
-      FieldNames = fields,
+      # as.list: иначе одно поле уйдёт строкой, а не массивом, и API вернёт ошибку
+      FieldNames = as.list(fields),
       Page = list(Limit = 2000000L),
       ReportName = paste0("yaf_", login, "_", format(Sys.time(), "%Y%m%d%H%M%S")),
       ReportType = ReportType,
@@ -147,7 +148,26 @@ yaf_get_report <- function(login,
         skipReportHeader = "true"
       ) |>
       httr2::req_body_json(body, auto_unbox = TRUE) |>
+      # Не даём httr2 падать на 4xx/5xx: иначе теряется текст ошибки от API
+      httr2::req_error(is_error = function(resp) FALSE) |>
       httr2::req_perform()
+  }
+
+  # Текст ошибки из JSON-ответа API ({"error": {...}}) или тело как есть
+  api_error_message <- function(resp) {
+    status <- httr2::resp_status(resp)
+    parsed <- tryCatch(httr2::resp_body_json(resp), error = function(e) NULL)
+    err <- parsed$error
+    msg <- if (!is.null(err)) {
+      sprintf("[reports] Ошибка API %s: %s. %s", err$error_code,
+              err$error_string, err$error_detail %||% "")
+    } else {
+      sprintf("[reports] HTTP %s: %s", status, httr2::resp_body_string(resp))
+    }
+    if (status == 401 || identical(as.integer(err$error_code), 53L)) {
+      msg <- paste0(msg, " Перевыпустите токен: yaf_get_token('", login, "').")
+    }
+    msg
   }
 
   cat("Запрос отправлен. Период:", PeriodType, "| Логин:", login, "\n")
@@ -158,8 +178,9 @@ yaf_get_report <- function(login,
   attempt <- 1L
 
   while(resp_status != 200 && attempt < max_tries) {
-    if (resp_status %in% c(400, 401, 500)) {
-      stop(paste("Ошибка API:", resp_status, httr2::resp_body_string(req)))
+    # 201/202 — отчёт формируется, 502-504 — временный сбой, остальное — ошибка
+    if (!resp_status %in% c(201, 202, 502, 503, 504)) {
+      stop(yaf_api_error(api_error_message(req), service = "reports"))
     }
     Sys.sleep(2)
     req <- send_request()
