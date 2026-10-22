@@ -4,18 +4,20 @@
 \alias{yaf_add_ads}
 \title{Создание объявлений}
 \usage{
-yaf_add_ads(login, ads, version = "v5")
+yaf_add_ads(login, ads, version = "v501")
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
 
-\item{ads}{Список AdAddItem: AdGroupId и TextAd / ResponsiveAd и т. д.}
+\item{ads}{Список AdAddItem: AdGroupId и ResponsiveAd / TextAd и т. д.}
 
-\item{version}{Версия API.}
+\item{version}{Версия API, по умолчанию "v501".}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на объявление.
 }
 \description{
 Объявления создаются черновиками; на модерацию — yaf_moderate_ads().
+Комбинаторные объявления (ResponsiveAd) API принимает только через v501,
+поэтому v501 — по умолчанию.
 }

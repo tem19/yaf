@@ -174,14 +174,16 @@ yaf_add_keywords <- function(login, keywords, version = "v5") {
 #' Создание объявлений
 #'
 #' Объявления создаются черновиками; на модерацию — yaf_moderate_ads().
+#' Комбинаторные объявления (ResponsiveAd) API принимает только через v501,
+#' поэтому v501 — по умолчанию.
 #'
 #' @param login Логин в Яндексе.
-#' @param ads Список AdAddItem: AdGroupId и TextAd / ResponsiveAd и т. д.
-#' @param version Версия API.
+#' @param ads Список AdAddItem: AdGroupId и ResponsiveAd / TextAd и т. д.
+#' @param version Версия API, по умолчанию "v501".
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на объявление.
 #' @export
-yaf_add_ads <- function(login, ads, version = "v5") {
+yaf_add_ads <- function(login, ads, version = "v501") {
   yaf_api_add(login, "ads", ads, "Ads", batch_size = 1000, version = version)
 }
 
