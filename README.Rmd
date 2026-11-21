@@ -286,6 +286,40 @@ camp <- yaf_add_campaigns("your_yandex_login", list(list(
 camp$Id
 ```
 
+## Изображения и видео
+
+Загрузка изображения и привязка к графическому объявлению:
+
+```r
+img <- yaf_upload_images("your_yandex_login", "banner-300x250.png",
+                         names = "Баннер", type = "FIXED_IMAGE")
+yaf_add_ads("your_yandex_login", list(list(
+  AdGroupId = adgroup_id,
+  TextImageAd = list(AdImageHash = img$AdImageHash, Href = "https://example.com")
+)))
+```
+
+Загрузка видео, ожидание конвертации и создание видеодополнения:
+
+```r
+vid <- yaf_upload_videos("your_yandex_login", paths = "clip.mp4", names = "Клип")
+yaf_wait_video_ready("your_yandex_login", vid$Id, wait_seconds = 600)
+creative <- yaf_add_video_creatives("your_yandex_login", vid$Id)
+yaf_add_ads("your_yandex_login", list(list(
+  AdGroupId = adgroup_id,
+  TextAd = list(
+    Title = "Заголовок", Text = "Текст объявления",
+    Href = "https://example.com", Mobile = "NO",
+    VideoExtension = list(CreativeId = creative$Id)
+  )
+)))
+```
+
+`yaf_get_ads()` возвращает колонки `image_hash` и `video_creative_id`.
+Видео через API удалить нельзя — оно остаётся в библиотеке кабинета.
+Изображение можно удалить через `yaf_delete_images()`, если оно не привязано
+к объявлению.
+
 ## yaf_ws_top() - сбор топовых запросов из Вордстата  
 Функция позволяет выгружать топ поисковых запросов по заданным ключевым словам - это основной функционал сервиса Wordstat.  
 

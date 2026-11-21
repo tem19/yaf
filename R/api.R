@@ -81,12 +81,17 @@ yaf_default_timeout <- function() {
 #' @keywords internal
 yaf_ids_chr <- function(ids) {
   if (is.null(ids) || length(ids) == 0) return(character(0))
+  if (anyNA(ids)) {
+    stop("\u0410\u0440\u0433\u0443\u043c\u0435\u043d\u0442 batch_ids/ids \u043d\u0435 \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c NA.", call. = FALSE)
+  }
   if (is.numeric(ids)) {
     ids <- format(ids, scientific = FALSE, trim = TRUE)
   }
   ids <- trimws(as.character(ids))
-  if (anyNA(ids) || any(!grepl("^-?[0-9]+$", ids))) {
-    stop("\u0410\u0440\u0433\u0443\u043c\u0435\u043d\u0442 batch_ids/ids \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0446\u0435\u043b\u044b\u0435 \u0447\u0438\u0441\u043b\u0430 \u0431\u0435\u0437 NA.", call. = FALSE)
+  # Id видео — hex-строки, остальные Id — целые числа. Пропускаем
+  # буквы и цифры, но не пробелы и не пустые значения.
+  if (anyNA(ids) || any(!nzchar(ids)) || any(!grepl("^[A-Za-z0-9_-]+$", ids))) {
+    stop("\u0410\u0440\u0433\u0443\u043c\u0435\u043d\u0442 batch_ids/ids \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u043d\u0435\u043f\u0443\u0441\u0442\u044b\u0435 \u0418\u0434 \u0431\u0435\u0437 NA \u0438 \u043f\u0440\u043e\u0431\u0435\u043b\u043e\u0432.", call. = FALSE)
   }
   unique(ids)
 }

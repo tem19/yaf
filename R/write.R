@@ -49,22 +49,24 @@ yaf_api_call <- function(login, service, method, params = list(), version = "v5"
 #'   Warnings ("код: текст (подробности); ...", NA — если их нет).
 #' @keywords internal
 yaf_action_results <- function(results) {
-  fmt <- function(x) {
-    if (length(x) == 0) return(NA_character_)
-    paste(vapply(x, function(e) {
-      details <- e$Details %||% ""
-      paste0(e$Code, ": ", e$Message, if (nzchar(details)) paste0(" (", details, ")") else "")
-    }, ""), collapse = "; ")
-  }
   data.frame(
     Id = vapply(results, function(r) {
       if (is.null(r$Id)) NA_character_ else as.character(r$Id)
     }, character(1)),
-    Errors = vapply(results, function(r) fmt(r$Errors), ""),
-    Warnings = vapply(results, function(r) fmt(r$Warnings), ""),
+    Errors = vapply(results, function(r) yaf_format_notifications(r$Errors), character(1)),
+    Warnings = vapply(results, function(r) yaf_format_notifications(r$Warnings), character(1)),
     stringsAsFactors = FALSE
   )
 }
+
+yaf_format_notifications <- function(x) {
+  if (length(x) == 0) return(NA_character_)
+  paste(vapply(x, function(e) {
+    details <- e$Details %||% ""
+    paste0(e$Code, ": ", e$Message, if (nzchar(details)) paste0(" (", details, ")") else "")
+  }, ""), collapse = "; ")
+}
+
 
 #' Метод add любого сервиса с батчами
 #'
@@ -303,5 +305,21 @@ yaf_resume_campaigns <- function(login, ids, version = "v5", token = NULL,
 yaf_delete_campaigns <- function(login, ids, version = "v5", token = NULL,
                                   timeout = yaf_default_timeout()) {
   yaf_api_ids_action(login, "campaigns", "delete", ids, batch_size = 1000,
+                     version = version, token = token, timeout = timeout)
+}
+
+#' Удаление объявлений
+#'
+#' @param login Логин в Яндексе.
+#' @param ids Вектор Id объявлений.
+#' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
+#'
+#' @return data.frame Id (character), Errors, Warnings — по строке на объявление.
+#' @export
+yaf_delete_ads <- function(login, ids, version = "v5", token = NULL,
+                           timeout = yaf_default_timeout()) {
+  yaf_api_ids_action(login, "ads", "delete", ids, batch_size = 10000,
                      version = version, token = token, timeout = timeout)
 }

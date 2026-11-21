@@ -14,7 +14,7 @@
 #' @return data.frame с колонками ad_id (character: Id объявлений больше
 #'   2^53 и не помещаются в numeric без потери точности), campaign_id,
 #'   adgroup_id, type, status, state, title, title2, text, href,
-#'   display_url_path.
+#'   display_url_path, image_hash, video_creative_id.
 #'   При raw = TRUE — список объектов API.
 #' @export
 #'
@@ -25,7 +25,11 @@
 yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids = NULL,
                         fields = c("Id", "CampaignId", "AdGroupId", "Type", "Status", "State"),
                         type_fields = list(
-                          TextAdFieldNames = c("Title", "Title2", "Text", "Href", "DisplayUrlPath"),
+                          TextAdFieldNames = c("Title", "Title2", "Text", "Href",
+                                               "DisplayUrlPath", "AdImageHash", "VideoExtension"),
+                          TextImageAdFieldNames = c("AdImageHash", "Href"),
+                          ResponsiveAdFieldNames = c("Titles", "Texts", "Href",
+                                                     "AdImages", "VideoExtensions"),
                           DynamicTextAdFieldNames = c("Text"),
                           MobileAppAdFieldNames = c("Title", "Text")
                         ),
@@ -64,7 +68,9 @@ yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids =
         title2 = content$Title2 %||% NA,
         text = content$Text %||% NA,
         href = content$Href %||% NA,
-        display_url_path = content$DisplayUrlPath %||% NA
+        display_url_path = content$DisplayUrlPath %||% NA,
+        image_hash = content$AdImageHash %||% NA,
+        video_creative_id = content$VideoExtension$CreativeId %||% NA
       ))
     }
     if (!is.null(x$ResponsiveAd)) {
@@ -73,21 +79,40 @@ yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids =
         if (is.null(v) || length(v) == 0) return(NA_character_)
         paste(unlist(v), collapse = "; ")
       }
+      video_items <- content$VideoExtensions$Items %||%
+        content$VideoExtensions %||% list()
+      video_ids <- vapply(video_items, function(v) {
+        if (is.list(v)) as.character(v$CreativeId %||% NA_character_) else as.character(v)
+      }, character(1))
+      video_ids <- video_ids[!is.na(video_ids) & nzchar(video_ids)]
       return(list(
         title = paste_or_na(content$Titles),
         title2 = NA_character_,
         text = paste_or_na(content$Texts),
         href = content$Href %||% NA,
-        display_url_path = content$DisplayUrlPath %||% NA
+        display_url_path = content$DisplayUrlPath %||% NA,
+        image_hash = paste_or_na(content$AdImages),
+        video_creative_id = if (length(video_ids)) paste(video_ids, collapse = "; ") else NA_character_
+      ))
+    }
+    if (!is.null(x$TextImageAd)) {
+      content <- x$TextImageAd
+      return(list(
+        title = NA_character_, title2 = NA_character_, text = NA_character_,
+        href = content$Href %||% NA, display_url_path = NA_character_,
+        image_hash = content$AdImageHash %||% NA,
+        video_creative_id = NA_character_
       ))
     }
     list(title = NA_character_, title2 = NA_character_, text = NA_character_,
-         href = NA_character_, display_url_path = NA_character_)
+         href = NA_character_, display_url_path = NA_character_,
+         image_hash = NA_character_, video_creative_id = NA_character_)
   }
 
   unknown <- unique(vapply(items, function(x) {
     if (!is.null(x$TextAd) || !is.null(x$DynamicTextAd) ||
-        !is.null(x$MobileAppAd) || !is.null(x$ResponsiveAd)) {
+        !is.null(x$MobileAppAd) || !is.null(x$ResponsiveAd) ||
+        !is.null(x$TextImageAd)) {
       return(NA_character_)
     }
     as.character(x$Type %||% "UNKNOWN")
@@ -114,6 +139,8 @@ yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids =
       text             = content$text,
       href             = content$href,
       display_url_path = content$display_url_path,
+      image_hash       = as.character(content$image_hash),
+      video_creative_id = as.character(content$video_creative_id),
       stringsAsFactors = FALSE
     )
   })
