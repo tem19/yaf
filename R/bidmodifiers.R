@@ -6,6 +6,8 @@
 #' @param type_fields Именованный список тип-специфичных полей,
 #'   например list(MobileAdjustmentFieldNames = c("BidModifier")).
 #' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame с колонками modifier_id, campaign_id, adgroup_id,
 #'   level, type, value (коэффициент в процентах) и condition (условие
@@ -32,11 +34,12 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
                                     IncomeGradeAdjustmentFieldNames  = c("Grade", "BidModifier"),
                                     AdGroupAdjustmentFieldNames      = c("BidModifier")
                                   ),
-                                  raw = FALSE) {
+                                  raw = FALSE, token = NULL,
+                                  timeout = yaf_default_timeout()) {
   if (!is.null(adgroup_ids)) {
     ids <- adgroup_ids; id_field <- "AdGroupIds"; batch_size <- 1000
   } else {
-    ids <- campaign_ids %||% yaf_all_campaign_ids(login)
+    ids <- campaign_ids %||% yaf_all_campaign_ids(login, token = token, timeout = timeout)
     id_field <- "CampaignIds"; batch_size <- 10
   }
 
@@ -49,21 +52,25 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
   )
 
   items <- yaf_api_get(login, "bidmodifiers", params,
-                       batch_ids = ids, batch_field = id_field, batch_size = batch_size)
+                       batch_ids = ids, batch_field = id_field, batch_size = batch_size,
+                       token = token, timeout = timeout)
 
   if (raw) return(items)
 
   if (length(items) == 0) {
-    cli::cli_alert_warning("Корректировки не найдены.")
+    cli::cli_alert_warning("\u041A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043A\u0438 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B.")
     return(data.frame())
   }
 
   df <- purrr::map_dfr(items, function(x) {
-    adj_name <- grep("Adjustment$", names(x), value = TRUE)[1]
-    adj <- if (is.na(adj_name)) list() else x[[adj_name]]
+    adj_name <- grep("Adjustment$", names(x), value = TRUE)
+    adj <- if (length(adj_name) == 0) list() else x[[adj_name[1]]]
 
-    # Если API вернул массив условий, разворачиваем в несколько строк
-    conds <- if (length(adj) > 0 && is.list(adj[[1]])) adj else list(adj)
+    # Массив условий приходит безымянным списком именованных объектов,
+    # одиночная корректировка — именованным списком полей.
+    is_array <- length(adj) > 0 && is.null(names(adj)) &&
+      all(vapply(adj, is.list, logical(1)))
+    conds <- if (is_array) adj else list(adj)
 
     purrr::map_dfr(conds, function(a) {
       cond_fields <- setdiff(names(a), c("BidModifier", "Enabled"))
@@ -83,7 +90,9 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
     })
   })
 
-  df <- df[!is.na(df$modifier_id), ]
-  cli::cli_alert_success("Успешно выгружено корректировок: {.val {nrow(df)}}")
+  if (anyNA(df$modifier_id)) {
+    cli::cli_warn("\u0423 {sum(is.na(df$modifier_id))} \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043E\u043A \u043D\u0435\u0442 Id: \u0441\u0442\u0440\u043E\u043A\u0438 \u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u044B \u0441 NA.")
+  }
+  cli::cli_alert_success("\u0423\u0441\u043F\u0435\u0448\u043D\u043E \u0432\u044B\u0433\u0440\u0443\u0436\u0435\u043D\u043E \u043A\u043E\u0440\u0440\u0435\u043A\u0442\u0438\u0440\u043E\u0432\u043E\u043A: {.val {nrow(df)}}")
   df
 }

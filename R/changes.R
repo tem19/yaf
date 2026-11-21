@@ -13,7 +13,7 @@ yaf_format_timestamp <- function(timestamp) {
   }
   if (!is.character(timestamp) || length(timestamp) != 1 ||
       !grepl("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", timestamp)) {
-    stop("timestamp должен быть POSIXct или строкой вида \"2025-01-31T23:59:59Z\".",
+    stop("timestamp \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C POSIXct \u0438\u043B\u0438 \u0441\u0442\u0440\u043E\u043A\u043E\u0439 \u0432\u0438\u0434\u0430 \"2025-01-31T23:59:59Z\".",
          call. = FALSE)
   }
   timestamp
@@ -29,15 +29,18 @@ yaf_format_timestamp <- function(timestamp) {
 #' @param method Метод сервиса: "check", "checkCampaigns", "checkDictionaries".
 #' @param params Список params запроса.
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Список с элементами result (поле result ответа API)
 #'   и units (баллы, см. yaf_parse_units()).
 #' @keywords internal
-yaf_changes_request <- function(login, method, params = list(), token = NULL) {
+yaf_changes_request <- function(login, method, params = list(), token = NULL,
+                                timeout = yaf_default_timeout()) {
   token <- token %||% get_yaf_token(login)
   # Пустой params должен уйти объектом {}, а не массивом []
   if (length(params) == 0) params <- stats::setNames(list(), character(0))
-  yaf_api_request(login, "changes", list(method = method, params = params), token)
+  yaf_api_request(login, "changes", list(method = method, params = params), token,
+                  timeout = timeout)
 }
 
 #' Текущее время сервера API для отслеживания изменений
@@ -48,6 +51,8 @@ yaf_changes_request <- function(login, method, params = list(), token = NULL) {
 #' что изменилось с этого момента.
 #'
 #' @param login Логин в Яндексе.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Строка в формате "YYYY-MM-DDThh:mm:ssZ" (UTC).
 #' @export
@@ -58,8 +63,9 @@ yaf_changes_request <- function(login, method, params = list(), token = NULL) {
 #' # ... через какое-то время
 #' yaf_check_campaign_changes("my_login", ts)
 #' }
-yaf_changes_timestamp <- function(login) {
-  yaf_changes_request(login, "checkDictionaries")$result$Timestamp
+yaf_changes_timestamp <- function(login, token = NULL, timeout = yaf_default_timeout()) {
+  yaf_changes_request(login, "checkDictionaries", token = token,
+                      timeout = timeout)$result$Timestamp
 }
 
 #' Какие кампании изменились с заданного момента
@@ -77,6 +83,8 @@ yaf_changes_timestamp <- function(login) {
 #'   текущее время сервера и возвращает пустую таблицу — так удобно
 #'   делать первый запуск.
 #' @param raw Если TRUE, вернуть поле Campaigns ответа API без разбора.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame с колонками CampaignId, ChangesIn (значения через
 #'   запятую) и логическими ChangedSelf (параметры кампании),
@@ -92,21 +100,24 @@ yaf_changes_timestamp <- function(login) {
 #' changed <- ch$CampaignId[ch$ChangedSelf | ch$ChangedChildren]
 #' ads <- yaf_get_ads("my_login", campaign_ids = changed)
 #' }
-yaf_check_campaign_changes <- function(login, timestamp = NULL, raw = FALSE) {
+yaf_check_campaign_changes <- function(login, timestamp = NULL, raw = FALSE,
+                                       token = NULL, timeout = yaf_default_timeout()) {
   empty <- data.frame(
     CampaignId = numeric(0), ChangesIn = character(0),
     ChangedSelf = logical(0), ChangedChildren = logical(0), ChangedStat = logical(0)
   )
 
   if (is.null(timestamp)) {
-    ts <- yaf_changes_timestamp(login)
-    cli::cli_alert_info("timestamp не задан. Текущее время сервера: {ts}")
+    ts <- yaf_changes_timestamp(login, token = token, timeout = timeout)
+    cli::cli_alert_info("timestamp \u043D\u0435 \u0437\u0430\u0434\u0430\u043D. \u0422\u0435\u043A\u0443\u0449\u0435\u0435 \u0432\u0440\u0435\u043C\u044F \u0441\u0435\u0440\u0432\u0435\u0440\u0430: {ts}")
     return(structure(if (raw) list() else empty, timestamp = ts))
   }
 
+  timestamp <- yaf_format_timestamp(timestamp)
   res <- yaf_changes_request(
     login, "checkCampaigns",
-    list(Timestamp = yaf_format_timestamp(timestamp))
+    list(Timestamp = timestamp),
+    token = token, timeout = timeout
   )
   items <- res$result$Campaigns %||% list()
 
@@ -126,8 +137,16 @@ yaf_check_campaign_changes <- function(login, timestamp = NULL, raw = FALSE) {
     )
   }
 
-  if (!raw) cli::cli_alert_success("Изменилось кампаний: {.val {length(items)}}")
-  structure(out, timestamp = res$result$Timestamp, units = res$units)
+  if (!raw) cli::cli_alert_success("\u0418\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C \u043A\u0430\u043C\u043F\u0430\u043D\u0438\u0439: {.val {length(items)}}")
+
+  server_ts <- res$result$Timestamp
+  if (is.null(server_ts) || !nzchar(server_ts)) {
+    # Без времени сервера безопаснее вернуть исходный timestamp: повторная
+    # проверка не пропустит изменения, хотя может выдать их ещё раз.
+    cli::cli_warn("API \u043D\u0435 \u0432\u0435\u0440\u043D\u0443\u043B Timestamp; \u0434\u043B\u044F \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0439 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D \u0438\u0441\u0445\u043E\u0434\u043D\u044B\u0439 timestamp.")
+    server_ts <- timestamp
+  }
+  structure(out, timestamp = server_ts, units = res$units)
 }
 
 #' Какие кампании, группы и объявления изменились с заданного момента
@@ -154,6 +173,8 @@ yaf_check_campaign_changes <- function(login, timestamp = NULL, raw = FALSE) {
 #'   "AdIds", "CampaignsStat".
 #' @param max_followups Сколько раундов дополнительных запросов делать
 #'   для необработанных объектов.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Список:
 #'   \describe{
@@ -182,20 +203,21 @@ yaf_check_campaign_changes <- function(login, timestamp = NULL, raw = FALSE) {
 yaf_check_changes <- function(login, timestamp = NULL,
                               campaign_ids = NULL, adgroup_ids = NULL, ad_ids = NULL,
                               fields = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"),
-                              max_followups = 3) {
+                              max_followups = 3, token = NULL,
+                              timeout = yaf_default_timeout()) {
   empty_ids <- data.frame(Type = character(0), Id = numeric(0), stringsAsFactors = FALSE)
   empty_stat <- data.frame(CampaignId = numeric(0), BorderDate = character(0),
                            stringsAsFactors = FALSE)
 
   if (is.null(timestamp)) {
-    ts <- yaf_changes_timestamp(login)
-    cli::cli_alert_info("timestamp не задан. Текущее время сервера: {ts}")
+    ts <- yaf_changes_timestamp(login, token = token, timeout = timeout)
+    cli::cli_alert_info("timestamp \u043D\u0435 \u0437\u0430\u0434\u0430\u043D. \u0422\u0435\u043A\u0443\u0449\u0435\u0435 \u0432\u0440\u0435\u043C\u044F \u0441\u0435\u0440\u0432\u0435\u0440\u0430: {ts}")
     return(list(modified = empty_ids, campaigns_stat = empty_stat,
                 not_found = empty_ids, unprocessed = empty_ids, timestamp = ts))
   }
 
   timestamp <- yaf_format_timestamp(timestamp)
-  token <- get_yaf_token(login)
+  token <- token %||% get_yaf_token(login)
   # Лимиты числа id в одном запросе check
   batch_size <- c(CampaignIds = 3000, AdGroupIds = 10000, AdIds = 50000)
 
@@ -204,7 +226,8 @@ yaf_check_changes <- function(login, timestamp = NULL,
   } else if (!is.null(adgroup_ids)) {
     queue <- list(AdGroupIds = adgroup_ids)
   } else {
-    queue <- list(CampaignIds = campaign_ids %||% yaf_all_campaign_ids(login))
+    queue <- list(CampaignIds = campaign_ids %||%
+                    yaf_all_campaign_ids(login, token = token, timeout = timeout))
   }
 
   modified <- list()
@@ -224,9 +247,10 @@ yaf_check_changes <- function(login, timestamp = NULL,
       for (batch in batches) {
         params <- list(Timestamp = timestamp, FieldNames = as.list(fields))
         params[[field]] <- as.list(batch)
-        res <- yaf_changes_request(login, "check", params, token)$result
+        res <- yaf_changes_request(login, "check", params, token,
+                                   timeout = timeout)$result
 
-        timestamps <- c(timestamps, res$Timestamp)
+        if (!is.null(res$Timestamp)) timestamps <- c(timestamps, res$Timestamp)
         modified[[length(modified) + 1]] <- yaf_changes_ids(res$Modified)
         not_found[[length(not_found) + 1]] <- yaf_changes_ids(res$NotFound)
         stat <- c(stat, res$Modified$CampaignsStat)
@@ -245,13 +269,13 @@ yaf_check_changes <- function(login, timestamp = NULL,
   unprocessed_df <- yaf_changes_ids(unprocessed)
   if (nrow(unprocessed_df) > 0) {
     cli::cli_warn(c(
-      "!" = "Не удалось обработать объектов: {nrow(unprocessed_df)}.",
-      "i" = "Они перечислены в элементе {.field unprocessed} результата."
+      "!" = "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432: {nrow(unprocessed_df)}.",
+      "i" = "\u041E\u043D\u0438 \u043F\u0435\u0440\u0435\u0447\u0438\u0441\u043B\u0435\u043D\u044B \u0432 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0435 {.field unprocessed} \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0430."
     ))
   }
 
   modified_df <- unique(dplyr::bind_rows(empty_ids, modified))
-  cli::cli_alert_success("Изменилось объектов: {.val {nrow(modified_df)}}")
+  cli::cli_alert_success("\u0418\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432: {.val {nrow(modified_df)}}")
 
   list(
     modified = modified_df,
@@ -263,8 +287,15 @@ yaf_check_changes <- function(login, timestamp = NULL,
     not_found = unique(dplyr::bind_rows(empty_ids, not_found)),
     unprocessed = unprocessed_df,
     # Строки ISO 8601 в UTC сравниваются лексикографически.
-    # Если проверять было нечего, берём текущее время сервера.
-    timestamp = if (length(timestamps) > 0) min(timestamps) else yaf_changes_timestamp(login)
+    # Если проверять было нечего — время сервера; если API не вернул
+    # Timestamp — исходный timestamp, чтобы не пропустить изменения.
+    timestamp = if (length(timestamps) > 0) {
+      min(timestamps)
+    } else if (all(vapply(queue, length, integer(1)) == 0L)) {
+      yaf_changes_timestamp(login, token = token, timeout = timeout)
+    } else {
+      timestamp
+    }
   )
 }
 

@@ -6,6 +6,8 @@
 #' @param adgroup_ids Вектор ID групп (необязательно, приоритетнее campaign_ids).
 #' @param fields Поля из FieldNames сервиса keywords.
 #' @param raw Если TRUE, вернуть сырой список объектов API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame с полями из fields и колонками KeywordPhrase
 #'   (фраза без минус-слов) и KeywordMinusWords (минус-слова через "; ").
@@ -25,13 +27,14 @@ yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
                                         "State", "Status", "ServingStatus",
                                         "Bid", "ContextBid", "StrategyPriority",
                                         "UserParam1", "UserParam2"),
-                             raw = FALSE) {
+                             raw = FALSE, token = NULL,
+                             timeout = yaf_default_timeout()) {
   if (!is.null(adgroup_ids)) {
     batch_ids <- adgroup_ids
     batch_field <- "AdGroupIds"
     batch_size <- 1000
   } else {
-    batch_ids <- campaign_ids %||% yaf_all_campaign_ids(login)
+    batch_ids <- campaign_ids %||% yaf_all_campaign_ids(login, token = token, timeout = timeout)
     batch_field <- "CampaignIds"
     batch_size <- 10
   }
@@ -39,7 +42,8 @@ yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
   items <- yaf_api_get(
     login, "keywords",
     params = list(FieldNames = fields),
-    batch_ids = batch_ids, batch_field = batch_field, batch_size = batch_size
+    batch_ids = batch_ids, batch_field = batch_field, batch_size = batch_size,
+    token = token, timeout = timeout
   )
 
   if (raw) return(items)
@@ -57,7 +61,7 @@ yaf_get_keywords <- function(login, campaign_ids = NULL, adgroup_ids = NULL,
     df$KeywordMinusWords <- parts$minus
   }
 
-  cli::cli_alert_success("Выгружено фраз: {.val {nrow(df)}}")
+  cli::cli_alert_success("\u0412\u044B\u0433\u0440\u0443\u0436\u0435\u043D\u043E \u0444\u0440\u0430\u0437: {.val {nrow(df)}}")
   df
 }
 

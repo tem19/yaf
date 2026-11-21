@@ -1,3 +1,6 @@
+# Переменные, используемые внутри dplyr::filter()/select() без qualifying
+utils::globalVariables(c("count", "source_phrase"))
+
 #' Сообщение при подключении пакета
 #'
 #' В интерактивной сессии выводит версию пакета и ссылку на репозиторий.
@@ -12,8 +15,8 @@
   if (interactive()) {
     packageStartupMessage(paste0(
       "--------------------------------------------------\n",
-      "Пакет yaf v", packageVersion("yaf"), " успешно загружен.\n",
-      "Автор: Артем Рогожин (https://github.com/tem19/yaf)\n",
+      "\u041F\u0430\u043A\u0435\u0442 yaf v", utils::packageVersion("yaf"), " \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D.\n",
+      "\u0410\u0432\u0442\u043E\u0440: \u0410\u0440\u0442\u0435\u043C \u0420\u043E\u0433\u043E\u0436\u0438\u043D (https://github.com/tem19/yaf)\n",
       "--------------------------------------------------"
     ))
   }
