@@ -24,7 +24,7 @@ yaf_moderate_ads(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на объявление.
+data.frame Id (character), Errors, Warnings — по строке на объявление.
 }
 \description{
 Отправка объявлений на модерацию

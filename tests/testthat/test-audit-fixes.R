@@ -137,6 +137,25 @@ test_that("yaf_get_ads разбирает ResponsiveAd", {
   expect_equal(df$href, "https://a.ru")
 })
 
+test_that("большие Id не теряют точность", {
+  mock_env()
+  httr2::local_mocked_responses(function(req) {
+    httr2::response(
+      status_code = 200,
+      headers = list("content-type" = "application/json"),
+      body = charToRaw(paste0(
+        '{"result":{"Ads":[{"Id":1927661234567890123,"CampaignId":1,',
+        '"AdGroupId":2,"Type":"TEXT_AD","Status":"DRAFT","State":"OFF",',
+        '"TextAd":{"Title":"t","Text":"x","Href":"https://a.ru"}}]}}'
+      ))
+    )
+  })
+
+  df <- suppressMessages(yaf_get_ads("login", campaign_ids = 1))
+  expect_equal(df$ad_id, "1927661234567890123")
+  expect_type(df$ad_id, "character")
+})
+
 test_that("yaf_get_ads предупреждает о неизвестном типе", {
   mock_env()
   httr2::local_mocked_responses(function(req) {
@@ -265,7 +284,7 @@ test_that("write-функции принимают явный token", {
   })
 
   res <- yaf_add_ads("login", list(list(AdGroupId = 1)), token = "secret")
-  expect_equal(res$Id, 10)
+  expect_equal(res$Id, "10")
 })
 
 test_that("логин проверяется до запроса", {

@@ -69,6 +69,28 @@ yaf_default_timeout <- function() {
   if (length(t) != 1L || is.na(t) || t <= 0) 60 else t
 }
 
+#' Приведение Id к строкам без потери точности
+#'
+#' Id объявлений в Директе больше 2^53 и не помещаются в double без потери
+#' точности. API принимает Id строками, поэтому внутри пакета они хранятся
+#' как character.
+#'
+#' @param ids Вектор Id (numeric, character или NULL).
+#'
+#' @return Уникальный вектор строк.
+#' @keywords internal
+yaf_ids_chr <- function(ids) {
+  if (is.null(ids) || length(ids) == 0) return(character(0))
+  if (is.numeric(ids)) {
+    ids <- format(ids, scientific = FALSE, trim = TRUE)
+  }
+  ids <- trimws(as.character(ids))
+  if (anyNA(ids) || any(!grepl("^-?[0-9]+$", ids))) {
+    stop("\u0410\u0440\u0433\u0443\u043c\u0435\u043d\u0442 batch_ids/ids \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0446\u0435\u043b\u044b\u0435 \u0447\u0438\u0441\u043b\u0430 \u0431\u0435\u0437 NA.", call. = FALSE)
+  }
+  unique(ids)
+}
+
 #' Подготовка params к сериализации
 #'
 #' httr2 сериализует тело с auto_unbox = TRUE, поэтому вектор из одного
@@ -150,7 +172,8 @@ yaf_api_request <- function(login, service, body, token,
       }
     } else {
       status <- httr2::resp_status(resp)
-      parsed <- tryCatch(httr2::resp_body_json(resp), error = function(e) NULL)
+      parsed <- tryCatch(httr2::resp_body_json(resp, bigint_as_char = TRUE),
+                         error = function(e) NULL)
       err <- parsed$error
 
       if (!is.null(err)) {
@@ -256,11 +279,7 @@ yaf_api_get <- function(login, service, params = list(),
   params <- yaf_prepare_params(params)
 
   if (!is.null(batch_ids)) {
-    ids <- suppressWarnings(as.numeric(batch_ids))
-    if (anyNA(ids) || any(!is.finite(ids))) {
-      stop("batch_ids \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u0447\u0438\u0441\u043B\u043E\u0432\u044B\u0435 Id \u0431\u0435\u0437 NA.", call. = FALSE)
-    }
-    batch_ids <- unique(ids)
+    batch_ids <- yaf_ids_chr(batch_ids)
     if (length(batch_ids) == 0) {
       return(structure(list(), units = yaf_parse_units(NULL), requests = 0L))
     }
@@ -349,7 +368,7 @@ yaf_all_campaign_ids <- function(login, token = NULL, timeout = yaf_default_time
   items <- yaf_api_get(login, "campaigns",
                        list(SelectionCriteria = list(), FieldNames = "Id"),
                        progress = FALSE, token = token, timeout = timeout)
-  vapply(items, function(x) as.numeric(x$Id), numeric(1))
+  vapply(items, function(x) as.character(x$Id), character(1))
 }
 
 #' Плоский список полей из вложенного объекта API

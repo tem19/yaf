@@ -205,7 +205,7 @@ yaf_check_changes <- function(login, timestamp = NULL,
                               fields = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"),
                               max_followups = 3, token = NULL,
                               timeout = yaf_default_timeout()) {
-  empty_ids <- data.frame(Type = character(0), Id = numeric(0), stringsAsFactors = FALSE)
+  empty_ids <- data.frame(Type = character(0), Id = character(0), stringsAsFactors = FALSE)
   empty_stat <- data.frame(CampaignId = numeric(0), BorderDate = character(0),
                            stringsAsFactors = FALSE)
 
@@ -240,7 +240,7 @@ yaf_check_changes <- function(login, timestamp = NULL,
     unprocessed <- list()
 
     for (field in names(queue)) {
-      ids <- unique(as.numeric(queue[[field]]))
+      ids <- yaf_ids_chr(queue[[field]])
       if (length(ids) == 0) next
       batches <- split(ids, ceiling(seq_along(ids) / batch_size[[field]]))
 
@@ -311,11 +311,11 @@ yaf_check_changes <- function(login, timestamp = NULL,
 yaf_changes_ids <- function(x) {
   types <- c(CampaignIds = "Campaign", AdGroupIds = "AdGroup", AdIds = "Ad")
   parts <- lapply(intersect(names(types), names(x)), function(f) {
-    ids <- as.numeric(unlist(x[[f]]))
+    ids <- as.character(unlist(x[[f]]))
     data.frame(Type = rep(types[[f]], length(ids)), Id = ids, stringsAsFactors = FALSE)
   })
   dplyr::bind_rows(
-    data.frame(Type = character(0), Id = numeric(0), stringsAsFactors = FALSE),
+    data.frame(Type = character(0), Id = character(0), stringsAsFactors = FALSE),
     parts
   )
 }

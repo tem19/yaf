@@ -25,7 +25,7 @@ yaf_add_adgroups(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на группу.
+data.frame Id (character), Errors, Warnings — по строке на группу.
 }
 \description{
 Группы единой перфоманс-кампании (UnifiedAdGroup) создаются только через v501.

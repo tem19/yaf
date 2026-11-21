@@ -39,8 +39,10 @@ yaf_get_ads(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame с колонками ad_id, campaign_id, adgroup_id, type,
-status, state, title, title2, text, href, display_url_path.
+data.frame с колонками ad_id (character: Id объявлений больше
+2^53 и не помещаются в numeric без потери точности), campaign_id,
+adgroup_id, type, status, state, title, title2, text, href,
+display_url_path.
 При raw = TRUE — список объектов API.
 }
 \description{

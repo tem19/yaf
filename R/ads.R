@@ -11,8 +11,10 @@
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame с колонками ad_id, campaign_id, adgroup_id, type,
-#'   status, state, title, title2, text, href, display_url_path.
+#' @return data.frame с колонками ad_id (character: Id объявлений больше
+#'   2^53 и не помещаются в numeric без потери точности), campaign_id,
+#'   adgroup_id, type, status, state, title, title2, text, href,
+#'   display_url_path.
 #'   При raw = TRUE — список объектов API.
 #' @export
 #'
@@ -101,7 +103,7 @@ yaf_get_ads <- function(login, campaign_ids = NULL, adgroup_ids = NULL, ad_ids =
   rows <- lapply(items, function(x) {
     content <- ad_content(x)
     data.frame(
-      ad_id            = x$Id,
+      ad_id            = as.character(x$Id),
       campaign_id      = x$CampaignId,
       adgroup_id       = x$AdGroupId,
       type             = x$Type %||% NA,

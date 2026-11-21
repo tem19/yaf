@@ -24,7 +24,7 @@ yaf_add_keywords(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на фразу.
+data.frame Id (character), Errors, Warnings — по строке на фразу.
 }
 \description{
 Создание ключевых фраз

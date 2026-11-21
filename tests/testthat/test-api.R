@@ -236,5 +236,5 @@ test_that("yaf_get_negative_keyword_sets не передаёт SelectionCriteria
   expect_equal(df$NegativeKeywords, "бесплатно; скачать")
 
   yaf_get_negative_keyword_sets("login", ids = c(7, 8))
-  expect_equal(unlist(params$SelectionCriteria$Ids), c(7, 8))
+  expect_equal(unlist(params$SelectionCriteria$Ids), c("7", "8"))
 })

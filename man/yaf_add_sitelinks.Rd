@@ -25,7 +25,7 @@ Href, Description), ...)), от 1 до 8 ссылок в наборе.}
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на набор.
+data.frame Id (character), Errors, Warnings — по строке на набор.
 }
 \description{
 Создание наборов быстрых ссылок

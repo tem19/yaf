@@ -24,7 +24,7 @@ yaf_add_adextensions(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на расширение.
+data.frame Id (character), Errors, Warnings — по строке на расширение.
 }
 \description{
 Создание расширений объявлений (уточнений)

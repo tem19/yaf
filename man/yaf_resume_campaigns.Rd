@@ -24,7 +24,7 @@ yaf_resume_campaigns(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на кампанию.
+data.frame Id (character), Errors, Warnings — по строке на кампанию.
 }
 \description{
 Возобновление показов кампаний

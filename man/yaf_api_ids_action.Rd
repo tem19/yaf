@@ -37,7 +37,7 @@ yaf_api_ids_action(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на Id. Атрибут
+data.frame Id (character), Errors, Warnings — по строке на Id. Атрибут
 "units" — баллы после последнего запроса.
 }
 \description{

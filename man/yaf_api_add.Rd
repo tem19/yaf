@@ -37,8 +37,9 @@ yaf_api_add(
 \item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame Id, Errors, Warnings — по строке на объект, в порядке
-items. Атрибут "units" — баллы после последнего запроса.
+data.frame Id (character), Errors, Warnings — по строке на
+объект, в порядке items. Атрибут "units" — баллы после последнего
+запроса.
 }
 \description{
 Режет items на батчи по лимиту сервиса и отправляет их по очереди.

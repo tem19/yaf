@@ -19,7 +19,7 @@ test_that("add режет объекты на батчи и собирает р�
   res <- yaf_add_campaigns("login", campaigns)
   expect_equal(sizes, c(10, 2))
   expect_true(all(grepl("/json/v501/campaigns$", urls)))
-  expect_equal(res$Id, c(1:11, NA))
+  expect_equal(res$Id, c(as.character(1:11), NA_character_))
   expect_equal(res$Errors[12], "5005: Поле задано неверно (Name)")
   expect_true(all(is.na(res$Errors[1:11])))
 })
@@ -66,7 +66,7 @@ test_that("временная ошибка API повторяется и при 
     }
   })
   res <- suppressMessages(yaf_add_sitelinks("login", list(list(Sitelinks = list(list(Title = "a", Href = "https://a.ru"))))))
-  expect_equal(res$Id, 7)
+  expect_equal(res$Id, "7")
   expect_equal(calls, 2)
 })
 
@@ -79,8 +79,8 @@ test_that("модерация отправляет Id массивом и чит
   })
   res <- yaf_moderate_ads("login", 5)
   expect_equal(body$method, "moderate")
-  expect_match(as.character(jsonlite::toJSON(body, auto_unbox = TRUE)), '"Ids":\\[5\\]')
-  expect_equal(res$Id, 5)
+  expect_match(as.character(jsonlite::toJSON(body, auto_unbox = TRUE)), '"Ids":\\["5"\\]')
+  expect_equal(res$Id, "5")
 })
 
 test_that("пустой список не делает запросов", {

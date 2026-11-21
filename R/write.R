@@ -57,7 +57,9 @@ yaf_action_results <- function(results) {
     }, ""), collapse = "; ")
   }
   data.frame(
-    Id = vapply(results, function(r) as.numeric(r$Id %||% NA), numeric(1)),
+    Id = vapply(results, function(r) {
+      if (is.null(r$Id)) NA_character_ else as.character(r$Id)
+    }, character(1)),
     Errors = vapply(results, function(r) fmt(r$Errors), ""),
     Warnings = vapply(results, function(r) fmt(r$Warnings), ""),
     stringsAsFactors = FALSE
@@ -77,8 +79,9 @@ yaf_action_results <- function(results) {
 #' @param field Имя массива в params: "Campaigns", "AdGroups", "Ads" и т. д.
 #' @param batch_size Объектов в одном запросе.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на объект, в порядке
-#'   items. Атрибут "units" — баллы после последнего запроса.
+#' @return data.frame Id (character), Errors, Warnings — по строке на
+#'   объект, в порядке items. Атрибут "units" — баллы после последнего
+#'   запроса.
 #' @export
 yaf_api_add <- function(login, service, items, field, batch_size = 1000,
                         version = "v5", max_retries = 5, token = NULL,
@@ -103,7 +106,7 @@ yaf_api_add <- function(login, service, items, field, batch_size = 1000,
 #' @param ids Вектор Id объектов.
 #' @param batch_size Id в одном запросе.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на Id. Атрибут
+#' @return data.frame Id (character), Errors, Warnings — по строке на Id. Атрибут
 #'   "units" — баллы после последнего запроса.
 #' @keywords internal
 yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
@@ -111,7 +114,7 @@ yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
                                timeout = yaf_default_timeout()) {
   out <- yaf_action_results(list())
   units <- yaf_parse_units(NULL)
-  ids <- unique(as.numeric(ids))
+  ids <- yaf_ids_chr(ids)
   if (length(ids) == 0) return(structure(out, units = units))
   field <- paste0(toupper(substring(method, 1, 1)), substring(method, 2), "Results")
   for (batch in unname(split(ids, ceiling(seq_along(ids) / batch_size)))) {
@@ -136,7 +139,7 @@ yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на кампанию.
+#' @return data.frame Id (character), Errors, Warnings — по строке на кампанию.
 #' @export
 #'
 #' @examples
@@ -167,7 +170,7 @@ yaf_add_campaigns <- function(login, campaigns, version = "v501", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на группу.
+#' @return data.frame Id (character), Errors, Warnings — по строке на группу.
 #' @export
 yaf_add_adgroups <- function(login, adgroups, version = "v501", token = NULL,
                              timeout = yaf_default_timeout()) {
@@ -183,7 +186,7 @@ yaf_add_adgroups <- function(login, adgroups, version = "v501", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на фразу.
+#' @return data.frame Id (character), Errors, Warnings — по строке на фразу.
 #' @export
 yaf_add_keywords <- function(login, keywords, version = "v5", token = NULL,
                              timeout = yaf_default_timeout()) {
@@ -203,7 +206,7 @@ yaf_add_keywords <- function(login, keywords, version = "v5", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на объявление.
+#' @return data.frame Id (character), Errors, Warnings — по строке на объявление.
 #' @export
 yaf_add_ads <- function(login, ads, version = "v501", token = NULL,
                         timeout = yaf_default_timeout()) {
@@ -220,7 +223,7 @@ yaf_add_ads <- function(login, ads, version = "v501", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на набор.
+#' @return data.frame Id (character), Errors, Warnings — по строке на набор.
 #' @export
 yaf_add_sitelinks <- function(login, sets, version = "v5", token = NULL,
                                timeout = yaf_default_timeout()) {
@@ -236,7 +239,7 @@ yaf_add_sitelinks <- function(login, sets, version = "v5", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на расширение.
+#' @return data.frame Id (character), Errors, Warnings — по строке на расширение.
 #' @export
 yaf_add_adextensions <- function(login, extensions, version = "v5", token = NULL,
                                   timeout = yaf_default_timeout()) {
@@ -252,7 +255,7 @@ yaf_add_adextensions <- function(login, extensions, version = "v5", token = NULL
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на объявление.
+#' @return data.frame Id (character), Errors, Warnings — по строке на объявление.
 #' @export
 yaf_moderate_ads <- function(login, ids, version = "v5", token = NULL,
                               timeout = yaf_default_timeout()) {
@@ -268,7 +271,7 @@ yaf_moderate_ads <- function(login, ids, version = "v5", token = NULL,
 #' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
 #' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на кампанию.
+#' @return data.frame Id (character), Errors, Warnings — по строке на кампанию.
 #' @export
 yaf_suspend_campaigns <- function(login, ids, version = "v5", token = NULL,
                                    timeout = yaf_default_timeout()) {
@@ -280,7 +283,7 @@ yaf_suspend_campaigns <- function(login, ids, version = "v5", token = NULL,
 #'
 #' @inheritParams yaf_suspend_campaigns
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на кампанию.
+#' @return data.frame Id (character), Errors, Warnings — по строке на кампанию.
 #' @export
 yaf_resume_campaigns <- function(login, ids, version = "v5", token = NULL,
                                   timeout = yaf_default_timeout()) {
@@ -295,7 +298,7 @@ yaf_resume_campaigns <- function(login, ids, version = "v5", token = NULL,
 #'
 #' @inheritParams yaf_suspend_campaigns
 #'
-#' @return data.frame Id, Errors, Warnings — по строке на кампанию.
+#' @return data.frame Id (character), Errors, Warnings — по строке на кампанию.
 #' @export
 yaf_delete_campaigns <- function(login, ids, version = "v5", token = NULL,
                                   timeout = yaf_default_timeout()) {

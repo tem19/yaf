@@ -75,7 +75,7 @@ yaf_get_bid_modifiers <- function(login, campaign_ids = NULL, adgroup_ids = NULL
     purrr::map_dfr(conds, function(a) {
       cond_fields <- setdiff(names(a), c("BidModifier", "Enabled"))
       data.frame(
-        modifier_id = x$Id,
+        modifier_id = as.character(x$Id),
         campaign_id = x$CampaignId %||% NA,
         adgroup_id  = x$AdGroupId %||% NA,
         level       = x$Level,
