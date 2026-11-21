@@ -30,28 +30,6 @@
 #' top <- yaf_ws_top("купить слона", api_key = "AQVN...",
 #'                   folder_id = "b1g...", region_id = 213)
 #' }
-# Счётчик часовой квоты Wordstat в рамках сессии R. Сбрасывается через час.
-yaf_ws_quota <- new.env(parent = emptyenv())
-yaf_ws_quota$start <- NULL
-yaf_ws_quota$count <- 0L
-
-yaf_ws_take_quota <- function() {
-  now <- Sys.time()
-  if (is.null(yaf_ws_quota$start) ||
-      difftime(now, yaf_ws_quota$start, units = "secs") >= 3600) {
-    yaf_ws_quota$start <- now
-    yaf_ws_quota$count <- 0L
-  }
-  if (yaf_ws_quota$count >= 100L) {
-    stop(yaf_api_error(
-      "\u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D\u0430 \u0447\u0430\u0441\u043E\u0432\u0430\u044F \u043A\u0432\u043E\u0442\u0430 Wordstat (100 \u0437\u0430\u043F\u0440\u043E\u0441\u043E\u0432). \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u0437\u0436\u0435 \u0438\u043B\u0438 \u0443\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u0435 depth_limit.",
-      service = "wordstat"
-    ))
-  }
-  yaf_ws_quota$count <- yaf_ws_quota$count + 1L
-  invisible(NULL)
-}
-
 yaf_ws_top <- function(phrase,
                        api_key = Sys.getenv("YANDEX_SEARCH_API_KEY"),
                        folder_id = Sys.getenv("YANDEX_FOLDER_ID"),
@@ -214,4 +192,27 @@ yaf_ws_top <- function(phrase,
            dplyr::distinct(phrase, .keep_all = TRUE) |>
            dplyr::arrange(dplyr::desc(count)) |>
            dplyr::select(-source_phrase))
+}
+
+
+# Счётчик часовой квоты Wordstat в рамках сессии R. Сбрасывается через час.
+yaf_ws_quota <- new.env(parent = emptyenv())
+yaf_ws_quota$start <- NULL
+yaf_ws_quota$count <- 0L
+
+yaf_ws_take_quota <- function() {
+  now <- Sys.time()
+  if (is.null(yaf_ws_quota$start) ||
+      difftime(now, yaf_ws_quota$start, units = "secs") >= 3600) {
+    yaf_ws_quota$start <- now
+    yaf_ws_quota$count <- 0L
+  }
+  if (yaf_ws_quota$count >= 100L) {
+    stop(yaf_api_error(
+      "\u041F\u0440\u0435\u0432\u044B\u0448\u0435\u043D\u0430 \u0447\u0430\u0441\u043E\u0432\u0430\u044F \u043A\u0432\u043E\u0442\u0430 Wordstat (100 \u0437\u0430\u043F\u0440\u043E\u0441\u043E\u0432). \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u0437\u0436\u0435 \u0438\u043B\u0438 \u0443\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u0435 depth_limit.",
+      service = "wordstat"
+    ))
+  }
+  yaf_ws_quota$count <- yaf_ws_quota$count + 1L
+  invisible(NULL)
 }
