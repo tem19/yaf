@@ -13,7 +13,9 @@ yaf_get_ads(
   type_fields = list(TextAdFieldNames = c("Title", "Title2", "Text", "Href",
     "DisplayUrlPath"), DynamicTextAdFieldNames = c("Text"), MobileAppAdFieldNames =
     c("Title", "Text")),
-  raw = FALSE
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -31,6 +33,10 @@ yaf_get_ads(
 например list(TextAdFieldNames = c("Title", "Href")).}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками ad_id, campaign_id, adgroup_id, type,

@@ -4,7 +4,13 @@
 \alias{yaf_check_campaign_changes}
 \title{Какие кампании изменились с заданного момента}
 \usage{
-yaf_check_campaign_changes(login, timestamp = NULL, raw = FALSE)
+yaf_check_campaign_changes(
+  login,
+  timestamp = NULL,
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -16,6 +22,10 @@ yaf_check_campaign_changes(login, timestamp = NULL, raw = FALSE)
 делать первый запуск.}
 
 \item{raw}{Если TRUE, вернуть поле Campaigns ответа API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками CampaignId, ChangesIn (значения через

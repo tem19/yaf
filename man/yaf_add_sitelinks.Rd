@@ -4,7 +4,13 @@
 \alias{yaf_add_sitelinks}
 \title{Создание наборов быстрых ссылок}
 \usage{
-yaf_add_sitelinks(login, sets, version = "v5")
+yaf_add_sitelinks(
+  login,
+  sets,
+  version = "v5",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -13,6 +19,10 @@ yaf_add_sitelinks(login, sets, version = "v5")
 Href, Description), ...)), от 1 до 8 ссылок в наборе.}
 
 \item{version}{Версия API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на набор.

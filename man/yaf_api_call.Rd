@@ -11,7 +11,9 @@ yaf_api_call(
   params = list(),
   version = "v5",
   max_retries = 5,
-  retry_network = identical(method, "get")
+  retry_network = identical(method, "get"),
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -32,6 +34,10 @@ yaf_api_call(
 
 \item{retry_network}{Повторять ли запрос при сетевой ошибке и HTTP 5xx.
 По умолчанию — только для get.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Поле result ответа API. Атрибут "units" — баллы после запроса.

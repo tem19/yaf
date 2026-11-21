@@ -11,7 +11,8 @@ yaf_ws_top(
   region_id = 225,
   devices = "all",
   top_n = 2000,
-  depth_limit = NULL
+  depth_limit = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ yaf_ws_top(
 \item{top_n}{Лимит фраз на один запрос (от 1 до 2000).}
 
 \item{depth_limit}{Порог частотности для парсинга вглубь. Если частота фразы выше этого числа, скрипт соберет вложенные запросы для нее.}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками phrase и count, отсортированный по

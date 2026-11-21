@@ -10,7 +10,9 @@ yaf_learning_conversions(
   goal_ids,
   date_from,
   date_to,
-  attribution
+  attribution,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -23,6 +25,10 @@ yaf_learning_conversions(
 \item{date_from, date_to}{Период отчёта.}
 
 \item{attribution}{Модель атрибуции.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками CampaignId, Platform (SEARCH / NETWORK),

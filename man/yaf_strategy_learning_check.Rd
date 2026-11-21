@@ -11,7 +11,9 @@ yaf_strategy_learning_check(
   goal_ids = NULL,
   min_conversions = 10,
   days = 7,
-  attribution = "AUTO"
+  attribution = "AUTO",
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -32,6 +34,10 @@ yaf_strategy_learning_check(
 
 \item{attribution}{Модель атрибуции для конверсий. AUTO — модель из
 настроек кампании.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame, одна строка на кампанию и площадку: CampaignId,

@@ -4,7 +4,13 @@
 \alias{yaf_get_negative_keyword_sets}
 \title{Получение наборов минус-фраз}
 \usage{
-yaf_get_negative_keyword_sets(login, ids = NULL, raw = FALSE)
+yaf_get_negative_keyword_sets(
+  login,
+  ids = NULL,
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -13,6 +19,10 @@ yaf_get_negative_keyword_sets(login, ids = NULL, raw = FALSE)
 выгружаются все наборы аккаунта.}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame: Id, Name, NegativeKeywords (через "; "), Associated.

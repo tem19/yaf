@@ -12,7 +12,8 @@ yaf_api_request(
   max_retries = 5,
   retry_codes = c(52, 506, 1000, 1001, 1002),
   version = "v5",
-  retry_network = TRUE
+  retry_network = TRUE,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -33,6 +34,9 @@ yaf_api_request(
 \item{retry_network}{Повторять ли запрос при сетевой ошибке и HTTP 5xx.
 Для изменяющих методов (add и т. п.) FALSE: запрос мог выполниться,
 и повтор создал бы дубли.}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах. По умолчанию
+\code{getOption("yaf.timeout", 60)} или переменная окружения \code{YAF_TIMEOUT}.}
 }
 \value{
 Список с элементами result (поле result ответа API)

@@ -4,7 +4,13 @@
 \alias{yaf_moderate_ads}
 \title{Отправка объявлений на модерацию}
 \usage{
-yaf_moderate_ads(login, ids, version = "v5")
+yaf_moderate_ads(
+  login,
+  ids,
+  version = "v5",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,6 +18,10 @@ yaf_moderate_ads(login, ids, version = "v5")
 \item{ids}{Вектор Id объявлений.}
 
 \item{version}{Версия API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на объявление.

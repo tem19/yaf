@@ -4,7 +4,13 @@
 \alias{yaf_add_keywords}
 \title{Создание ключевых фраз}
 \usage{
-yaf_add_keywords(login, keywords, version = "v5")
+yaf_add_keywords(
+  login,
+  keywords,
+  version = "v5",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,6 +18,10 @@ yaf_add_keywords(login, keywords, version = "v5")
 \item{keywords}{Список KeywordAddItem: AdGroupId, Keyword, Bid и т. д.}
 
 \item{version}{Версия API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на фразу.

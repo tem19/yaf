@@ -4,7 +4,13 @@
 \alias{yaf_add_adextensions}
 \title{Создание расширений объявлений (уточнений)}
 \usage{
-yaf_add_adextensions(login, extensions, version = "v5")
+yaf_add_adextensions(
+  login,
+  extensions,
+  version = "v5",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,6 +18,10 @@ yaf_add_adextensions(login, extensions, version = "v5")
 \item{extensions}{Список AdExtensionAddItem: list(Callout = list(CalloutText = "...")).}
 
 \item{version}{Версия API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на расширение.

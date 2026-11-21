@@ -4,7 +4,13 @@
 \alias{yaf_changes_request}
 \title{Вызов метода сервиса changes}
 \usage{
-yaf_changes_request(login, method, params = list(), token = NULL)
+yaf_changes_request(
+  login,
+  method,
+  params = list(),
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -14,6 +20,8 @@ yaf_changes_request(login, method, params = list(), token = NULL)
 \item{params}{Список params запроса.}
 
 \item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Список с элементами result (поле result ответа API)

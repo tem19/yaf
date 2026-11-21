@@ -4,7 +4,13 @@
 \alias{yaf_resume_campaigns}
 \title{Возобновление показов кампаний}
 \usage{
-yaf_resume_campaigns(login, ids, version = "v5")
+yaf_resume_campaigns(
+  login,
+  ids,
+  version = "v5",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,6 +18,10 @@ yaf_resume_campaigns(login, ids, version = "v5")
 \item{ids}{Вектор Id кампаний.}
 
 \item{version}{Версия API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на кампанию.

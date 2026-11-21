@@ -4,7 +4,13 @@
 \alias{yaf_add_ads}
 \title{Создание объявлений}
 \usage{
-yaf_add_ads(login, ads, version = "v501")
+yaf_add_ads(
+  login,
+  ads,
+  version = "v501",
+  token = NULL,
+  timeout = yaf_default_timeout()
+)
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
@@ -12,6 +18,10 @@ yaf_add_ads(login, ads, version = "v501")
 \item{ads}{Список AdAddItem: AdGroupId и ResponsiveAd / TextAd и т. д.}
 
 \item{version}{Версия API, по умолчанию "v501".}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на объявление.

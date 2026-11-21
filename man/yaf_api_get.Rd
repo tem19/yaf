@@ -13,7 +13,9 @@ yaf_api_get(
   batch_size = 10,
   page_limit = 10000,
   max_retries = 5,
-  progress = interactive()
+  progress = interactive(),
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -38,6 +40,10 @@ yaf_api_get(
 \item{max_retries}{Максимум повторов при временных ошибках.}
 
 \item{progress}{Показывать прогресс-бар.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Список объектов в том виде, в каком их вернул API. Атрибут

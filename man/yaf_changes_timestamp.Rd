@@ -4,10 +4,14 @@
 \alias{yaf_changes_timestamp}
 \title{Текущее время сервера API для отслеживания изменений}
 \usage{
-yaf_changes_timestamp(login)
+yaf_changes_timestamp(login, token = NULL, timeout = yaf_default_timeout())
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Строка в формате "YYYY-MM-DDThh:mm:ssZ" (UTC).

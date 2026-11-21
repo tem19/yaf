@@ -17,10 +17,9 @@ Imports:
     jsonlite,
     purrr,
     tidyr,
-    stringi,
     cli,
-    R6,
-    stats
+    stats,
+    utils
 URL: https://github.com/tem19/yaf
 BugReports: https://github.com/tem19/yaf/issues
 Depends: 

@@ -11,7 +11,9 @@ yaf_api_ids_action(
   ids,
   batch_size = 1000,
   version = "v5",
-  max_retries = 5
+  max_retries = 5,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -29,6 +31,10 @@ yaf_api_ids_action(
 и их группы создаются только через "v501".}
 
 \item{max_retries}{Максимум повторов при временных ошибках.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame Id, Errors, Warnings — по строке на Id. Атрибут

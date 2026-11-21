@@ -11,7 +11,9 @@ yaf_check_changes(
   adgroup_ids = NULL,
   ad_ids = NULL,
   fields = c("CampaignIds", "AdGroupIds", "AdIds", "CampaignsStat"),
-  max_followups = 3
+  max_followups = 3,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -33,6 +35,10 @@ yaf_check_changes(
 
 \item{max_followups}{Сколько раундов дополнительных запросов делать
 для необработанных объектов.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Список:

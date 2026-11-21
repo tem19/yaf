@@ -4,10 +4,14 @@
 \alias{yaf_all_campaign_ids}
 \title{Все Id кампаний аккаунта}
 \usage{
-yaf_all_campaign_ids(login)
+yaf_all_campaign_ids(login, token = NULL, timeout = yaf_default_timeout())
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 Числовой вектор Id кампаний.

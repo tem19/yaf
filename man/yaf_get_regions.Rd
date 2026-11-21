@@ -4,14 +4,18 @@
 \alias{yaf_get_regions}
 \title{Получение справочника регионов Яндекс Директа}
 \usage{
-yaf_get_regions(login)
+yaf_get_regions(login, token = NULL, timeout = yaf_default_timeout())
 }
 \arguments{
 \item{login}{Логин в Яндексе.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками region_id, parent_id, region_name,
-region_type. При ошибке API — NULL.
+region_type. Если справочник пуст — пустой data.frame.
 }
 \description{
 Возвращает дерево регионов (ID, название, родительский ID, тип).
