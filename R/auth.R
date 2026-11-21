@@ -1,3 +1,23 @@
+#' Проверка логина
+#'
+#' Логин попадает в имя файла токена и в заголовок Client-Login, поэтому
+#' запрещаем пустые значения, NA и разделители пути.
+#'
+#' @param login Логин в Яндексе.
+#'
+#' @return NULL, невидимо; при ошибке останавливается.
+#' @keywords internal
+yaf_check_login <- function(login) {
+  if (missing(login) || !is.character(login) || length(login) != 1L ||
+      is.na(login) || !nzchar(login)) {
+    stop("\u0410\u0440\u0433\u0443\u043C\u0435\u043D\u0442 'login' \u0434\u043E\u043B\u0436\u0435\u043D \u0431\u044B\u0442\u044C \u043D\u0435\u043F\u0443\u0441\u0442\u043E\u0439 \u0441\u0442\u0440\u043E\u043A\u043E\u0439.", call. = FALSE)
+  }
+  if (grepl("[/\\\\]", login)) {
+    stop("\u0410\u0440\u0433\u0443\u043C\u0435\u043D\u0442 'login' \u043D\u0435 \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0440\u0430\u0437\u0434\u0435\u043B\u0438\u0442\u0435\u043B\u0438 \u043F\u0443\u0442\u0438.", call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 #' Получение и сохранение токена Яндекс Директа
 #'
 #' Открывает в браузере страницу авторизации Яндекса, просит вставить
@@ -15,9 +35,7 @@
 #' yaf_get_token("my_login")
 #' }
 yaf_get_token <- function(login) {
-  if (missing(login) || is.null(login)) {
-    stop("Аргумент 'login' обязателен для получения и сохранения токена.")
-  }
+  yaf_check_login(login)
 
   # Формируем URL с login_hint для удобства пользователя
   auth_url <- paste0(
@@ -26,17 +44,17 @@ yaf_get_token <- function(login) {
     "&login_hint=", utils::URLencode(login)
   )
 
-  message("Открываю браузер для авторизации логина: ", login)
+  message("\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u044E \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u0434\u043B\u044F \u0430\u0432\u0442\u043E\u0440\u0438\u0437\u0430\u0446\u0438\u0438 \u043B\u043E\u0433\u0438\u043D\u0430: ", login)
   utils::browseURL(auth_url)
 
-  message("Если браузер не открылся, перейдите по ссылке вручную:")
+  message("\u0415\u0441\u043B\u0438 \u0431\u0440\u0430\u0443\u0437\u0435\u0440 \u043D\u0435 \u043E\u0442\u043A\u0440\u044B\u043B\u0441\u044F, \u043F\u0435\u0440\u0435\u0439\u0434\u0438\u0442\u0435 \u043F\u043E \u0441\u0441\u044B\u043B\u043A\u0435 \u0432\u0440\u0443\u0447\u043D\u0443\u044E:")
   message(auth_url)
 
   # Запрашиваем токен из консоли
-  token <- readline("Вставьте полученный токен здесь: ")
+  token <- readline("\u0412\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u043D\u044B\u0439 \u0442\u043E\u043A\u0435\u043D \u0437\u0434\u0435\u0441\u044C: ")
 
   if (token == "" || is.na(token)) {
-    stop("Ошибка: Токен не может быть пустым.")
+    stop("\u041E\u0448\u0438\u0431\u043A\u0430: \u0422\u043E\u043A\u0435\u043D \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u043F\u0443\u0441\u0442\u044B\u043C.")
   }
 
   # Определяем кроссплатформенный путь к папке настроек (Windows/Mac/Linux)
@@ -44,17 +62,18 @@ yaf_get_token <- function(login) {
 
   # Создаем папку, если она еще не существует
   if (!dir.exists(conf_dir)) {
-    dir.create(conf_dir, recursive = TRUE)
+    dir.create(conf_dir, recursive = TRUE, mode = "0700")
   }
 
   # Формируем путь к файлу (например, .../yaf/config/my_login.rds)
   token_path <- file.path(conf_dir, paste0(login, ".rds"))
 
-  # Сохраняем токен
+  # Сохраняем токен и закрываем файл от других пользователей
   saveRDS(token, token_path)
+  try(Sys.chmod(token_path, mode = "0600"), silent = TRUE)
 
-  message("✔ Токен успешно сохранен!")
-  message("Путь к файлу: ", token_path)
+  message("\u2714 \u0422\u043E\u043A\u0435\u043D \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D!")
+  message("\u041F\u0443\u0442\u044C \u043A \u0444\u0430\u0439\u043B\u0443: ", token_path)
 
   return(invisible(token))
 }
@@ -70,6 +89,7 @@ yaf_get_token <- function(login) {
 #' @return Токен (строка).
 #' @keywords internal
 get_yaf_token <- function(login) {
+  yaf_check_login(login)
   conf_dir <- tools::R_user_dir("yaf", which = "config")
   token_path <- file.path(conf_dir, paste0(login, ".rds"))
 
@@ -77,22 +97,30 @@ get_yaf_token <- function(login) {
   if (!file.exists(token_path)) {
     if (!interactive()) {
       stop(
-        "Токен для логина '", login, "' не найден: ", token_path, ". ",
-        "Получите его в интерактивной сессии R: yaf_get_token('", login, "').",
+        "\u0422\u043E\u043A\u0435\u043D \u0434\u043B\u044F \u043B\u043E\u0433\u0438\u043D\u0430 '", login, "' \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D: ", token_path, ". ",
+        "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u0435 \u0435\u0433\u043E \u0432 \u0438\u043D\u0442\u0435\u0440\u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0441\u0435\u0441\u0441\u0438\u0438 R: yaf_get_token('", login, "').",
         call. = FALSE
       )
     }
-    message("Файл токена не найден для '", login, "'. Запускаю yaf_get_token()...")
+    message("\u0424\u0430\u0439\u043B \u0442\u043E\u043A\u0435\u043D\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u0434\u043B\u044F '", login, "'. \u0417\u0430\u043F\u0443\u0441\u043A\u0430\u044E yaf_get_token()...")
     yaf_get_token(login = login)
   }
 
   # Читаем токен из файла
-  token <- tryCatch({
-    readRDS(token_path)
-  }, error = function(e) {
-    stop("Ошибка при чтении файла токена. Попробуйте получить его заново.")
-  })
+  token <- tryCatch(
+    readRDS(token_path),
+    error = function(e) {
+      stop("\u041E\u0448\u0438\u0431\u043A\u0430 \u043F\u0440\u0438 \u0447\u0442\u0435\u043D\u0438\u0438 \u0444\u0430\u0439\u043B\u0430 \u0442\u043E\u043A\u0435\u043D\u0430 ", token_path, ": ",
+           conditionMessage(e), ". \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0442\u043E\u043A\u0435\u043D \u0437\u0430\u043D\u043E\u0432\u043E.",
+           call. = FALSE)
+    }
+  )
 
-  return(token)
+  if (!is.character(token) || length(token) != 1L || is.na(token) || !nzchar(token)) {
+    stop("\u0424\u0430\u0439\u043B \u0442\u043E\u043A\u0435\u043D\u0430 ", token_path, " \u043F\u043E\u0432\u0440\u0435\u0436\u0434\u0451\u043D: \u043E\u0436\u0438\u0434\u0430\u043B\u0430\u0441\u044C \u043D\u0435\u043F\u0443\u0441\u0442\u0430\u044F \u0441\u0442\u0440\u043E\u043A\u0430. ",
+         "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u0435 \u0442\u043E\u043A\u0435\u043D \u0437\u0430\u043D\u043E\u0432\u043E: yaf_get_token('", login, "').", call. = FALSE)
+  }
+
+  token
 }
 

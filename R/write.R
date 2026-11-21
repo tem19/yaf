@@ -17,6 +17,8 @@
 #' @param max_retries Максимум повторов при временных ошибках.
 #' @param retry_network Повторять ли запрос при сетевой ошибке и HTTP 5xx.
 #'   По умолчанию — только для get.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Поле result ответа API. Атрибут "units" — баллы после запроса.
 #' @export
@@ -27,11 +29,13 @@
 #'              list(SelectionCriteria = list(Ids = list(123))))
 #' }
 yaf_api_call <- function(login, service, method, params = list(), version = "v5",
-                         max_retries = 5, retry_network = identical(method, "get")) {
-  token <- get_yaf_token(login)
+                         max_retries = 5, retry_network = identical(method, "get"),
+                         token = NULL, timeout = yaf_default_timeout()) {
+  token <- token %||% get_yaf_token(login)
   params <- yaf_prepare_params(params)
   res <- yaf_api_request(login, service, list(method = method, params = params), token,
-                         max_retries, version = version, retry_network = retry_network)
+                         max_retries, version = version, retry_network = retry_network,
+                         timeout = timeout)
   out <- res$result
   attr(out, "units") <- res$units
   out
@@ -77,14 +81,16 @@ yaf_action_results <- function(results) {
 #'   items. Атрибут "units" — баллы после последнего запроса.
 #' @export
 yaf_api_add <- function(login, service, items, field, batch_size = 1000,
-                        version = "v5", max_retries = 5) {
+                        version = "v5", max_retries = 5, token = NULL,
+                        timeout = yaf_default_timeout()) {
   out <- yaf_action_results(list())
   units <- yaf_parse_units(NULL)
   if (length(items) == 0) return(structure(out, units = units))
   batches <- unname(split(items, ceiling(seq_along(items) / batch_size)))
   for (batch in batches) {
     res <- yaf_api_call(login, service, "add", stats::setNames(list(unname(batch)), field),
-                        version = version, max_retries = max_retries)
+                        version = version, max_retries = max_retries,
+                        token = token, timeout = timeout)
     out <- rbind(out, yaf_action_results(res$AddResults))
     units <- attr(res, "units")
   }
@@ -101,7 +107,8 @@ yaf_api_add <- function(login, service, items, field, batch_size = 1000,
 #'   "units" — баллы после последнего запроса.
 #' @keywords internal
 yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
-                               version = "v5", max_retries = 5) {
+                               version = "v5", max_retries = 5, token = NULL,
+                               timeout = yaf_default_timeout()) {
   out <- yaf_action_results(list())
   units <- yaf_parse_units(NULL)
   ids <- unique(as.numeric(ids))
@@ -109,7 +116,8 @@ yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
   field <- paste0(toupper(substring(method, 1, 1)), substring(method, 2), "Results")
   for (batch in unname(split(ids, ceiling(seq_along(ids) / batch_size)))) {
     res <- yaf_api_call(login, service, method, list(SelectionCriteria = list(Ids = as.list(batch))),
-                        version = version, max_retries = max_retries)
+                        version = version, max_retries = max_retries,
+                        token = token, timeout = timeout)
     out <- rbind(out, yaf_action_results(res[[field]]))
     units <- attr(res, "units")
   }
@@ -125,6 +133,8 @@ yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
 #' @param campaigns Список CampaignAddItem: Name, StartDate, NegativeKeywords,
 #'   UnifiedCampaign / TextCampaign и т. д.
 #' @param version Версия API, по умолчанию "v501".
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на кампанию.
 #' @export
@@ -140,8 +150,10 @@ yaf_api_ids_action <- function(login, service, method, ids, batch_size = 1000,
 #'   ))
 #' )))
 #' }
-yaf_add_campaigns <- function(login, campaigns, version = "v501") {
-  yaf_api_add(login, "campaigns", campaigns, "Campaigns", batch_size = 10, version = version)
+yaf_add_campaigns <- function(login, campaigns, version = "v501", token = NULL,
+                              timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "campaigns", campaigns, "Campaigns", batch_size = 10,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Создание групп объявлений
@@ -152,11 +164,15 @@ yaf_add_campaigns <- function(login, campaigns, version = "v501") {
 #' @param adgroups Список AdGroupAddItem: Name, CampaignId, RegionIds
 #'   (массив: list(213)), NegativeKeywords, UnifiedAdGroup и т. д.
 #' @param version Версия API, по умолчанию "v501".
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на группу.
 #' @export
-yaf_add_adgroups <- function(login, adgroups, version = "v501") {
-  yaf_api_add(login, "adgroups", adgroups, "AdGroups", batch_size = 1000, version = version)
+yaf_add_adgroups <- function(login, adgroups, version = "v501", token = NULL,
+                             timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "adgroups", adgroups, "AdGroups", batch_size = 1000,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Создание ключевых фраз
@@ -164,11 +180,15 @@ yaf_add_adgroups <- function(login, adgroups, version = "v501") {
 #' @param login Логин в Яндексе.
 #' @param keywords Список KeywordAddItem: AdGroupId, Keyword, Bid и т. д.
 #' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на фразу.
 #' @export
-yaf_add_keywords <- function(login, keywords, version = "v5") {
-  yaf_api_add(login, "keywords", keywords, "Keywords", batch_size = 1000, version = version)
+yaf_add_keywords <- function(login, keywords, version = "v5", token = NULL,
+                             timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "keywords", keywords, "Keywords", batch_size = 1000,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Создание объявлений
@@ -180,11 +200,15 @@ yaf_add_keywords <- function(login, keywords, version = "v5") {
 #' @param login Логин в Яндексе.
 #' @param ads Список AdAddItem: AdGroupId и ResponsiveAd / TextAd и т. д.
 #' @param version Версия API, по умолчанию "v501".
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на объявление.
 #' @export
-yaf_add_ads <- function(login, ads, version = "v501") {
-  yaf_api_add(login, "ads", ads, "Ads", batch_size = 1000, version = version)
+yaf_add_ads <- function(login, ads, version = "v501", token = NULL,
+                        timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "ads", ads, "Ads", batch_size = 1000,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Создание наборов быстрых ссылок
@@ -193,11 +217,15 @@ yaf_add_ads <- function(login, ads, version = "v501") {
 #' @param sets Список SitelinksSetAddItem: list(Sitelinks = list(list(Title,
 #'   Href, Description), ...)), от 1 до 8 ссылок в наборе.
 #' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на набор.
 #' @export
-yaf_add_sitelinks <- function(login, sets, version = "v5") {
-  yaf_api_add(login, "sitelinks", sets, "SitelinksSets", batch_size = 1000, version = version)
+yaf_add_sitelinks <- function(login, sets, version = "v5", token = NULL,
+                               timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "sitelinks", sets, "SitelinksSets", batch_size = 1000,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Создание расширений объявлений (уточнений)
@@ -205,11 +233,15 @@ yaf_add_sitelinks <- function(login, sets, version = "v5") {
 #' @param login Логин в Яндексе.
 #' @param extensions Список AdExtensionAddItem: list(Callout = list(CalloutText = "...")).
 #' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на расширение.
 #' @export
-yaf_add_adextensions <- function(login, extensions, version = "v5") {
-  yaf_api_add(login, "adextensions", extensions, "AdExtensions", batch_size = 1000, version = version)
+yaf_add_adextensions <- function(login, extensions, version = "v5", token = NULL,
+                                  timeout = yaf_default_timeout()) {
+  yaf_api_add(login, "adextensions", extensions, "AdExtensions", batch_size = 1000,
+              version = version, token = token, timeout = timeout)
 }
 
 #' Отправка объявлений на модерацию
@@ -217,11 +249,15 @@ yaf_add_adextensions <- function(login, extensions, version = "v5") {
 #' @param login Логин в Яндексе.
 #' @param ids Вектор Id объявлений.
 #' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на объявление.
 #' @export
-yaf_moderate_ads <- function(login, ids, version = "v5") {
-  yaf_api_ids_action(login, "ads", "moderate", ids, batch_size = 10000, version = version)
+yaf_moderate_ads <- function(login, ids, version = "v5", token = NULL,
+                              timeout = yaf_default_timeout()) {
+  yaf_api_ids_action(login, "ads", "moderate", ids, batch_size = 10000,
+                     version = version, token = token, timeout = timeout)
 }
 
 #' Остановка кампаний
@@ -229,11 +265,15 @@ yaf_moderate_ads <- function(login, ids, version = "v5") {
 #' @param login Логин в Яндексе.
 #' @param ids Вектор Id кампаний.
 #' @param version Версия API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на кампанию.
 #' @export
-yaf_suspend_campaigns <- function(login, ids, version = "v5") {
-  yaf_api_ids_action(login, "campaigns", "suspend", ids, batch_size = 1000, version = version)
+yaf_suspend_campaigns <- function(login, ids, version = "v5", token = NULL,
+                                   timeout = yaf_default_timeout()) {
+  yaf_api_ids_action(login, "campaigns", "suspend", ids, batch_size = 1000,
+                     version = version, token = token, timeout = timeout)
 }
 
 #' Возобновление показов кампаний
@@ -242,8 +282,10 @@ yaf_suspend_campaigns <- function(login, ids, version = "v5") {
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на кампанию.
 #' @export
-yaf_resume_campaigns <- function(login, ids, version = "v5") {
-  yaf_api_ids_action(login, "campaigns", "resume", ids, batch_size = 1000, version = version)
+yaf_resume_campaigns <- function(login, ids, version = "v5", token = NULL,
+                                  timeout = yaf_default_timeout()) {
+  yaf_api_ids_action(login, "campaigns", "resume", ids, batch_size = 1000,
+                     version = version, token = token, timeout = timeout)
 }
 
 #' Удаление кампаний
@@ -255,6 +297,8 @@ yaf_resume_campaigns <- function(login, ids, version = "v5") {
 #'
 #' @return data.frame Id, Errors, Warnings — по строке на кампанию.
 #' @export
-yaf_delete_campaigns <- function(login, ids, version = "v5") {
-  yaf_api_ids_action(login, "campaigns", "delete", ids, batch_size = 1000, version = version)
+yaf_delete_campaigns <- function(login, ids, version = "v5", token = NULL,
+                                  timeout = yaf_default_timeout()) {
+  yaf_api_ids_action(login, "campaigns", "delete", ids, batch_size = 1000,
+                     version = version, token = token, timeout = timeout)
 }

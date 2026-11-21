@@ -47,11 +47,26 @@ yaf_api_error <- function(message, code = NA_integer_, service = NA_character_,
 #'   нет, все значения NA.
 #' @keywords internal
 yaf_parse_units <- function(header) {
-  if (is.null(header) || is.na(header)) {
-    return(c(spent = NA_real_, rest = NA_real_, limit = NA_real_))
+  empty <- c(spent = NA_real_, rest = NA_real_, limit = NA_real_)
+  if (is.null(header) || length(header) != 1L || is.na(header)) {
+    return(empty)
   }
-  v <- as.numeric(strsplit(header, "/", fixed = TRUE)[[1]])
-  stats::setNames(v[1:3], c("spent", "rest", "limit"))
+  v <- suppressWarnings(as.numeric(strsplit(header, "/", fixed = TRUE)[[1]]))
+  v <- c(v, rep(NA_real_, 3))[1:3]
+  stats::setNames(v, c("spent", "rest", "limit"))
+}
+
+#' Таймаут по умолчанию для одного HTTP-запроса, секунды
+#'
+#' httr2 не задаёт таймаут сам: без него зависшее соединение блокирует
+#' R-процесс навсегда.
+#'
+#' @return Число секунд.
+#' @keywords internal
+yaf_default_timeout <- function() {
+  t <- getOption("yaf.timeout", Sys.getenv("YAF_TIMEOUT", "60"))
+  t <- suppressWarnings(as.numeric(t))
+  if (length(t) != 1L || is.na(t) || t <= 0) 60 else t
 }
 
 #' Подготовка params к сериализации
@@ -94,6 +109,8 @@ yaf_prepare_params <- function(params) {
 #' @param retry_network Повторять ли запрос при сетевой ошибке и HTTP 5xx.
 #'   Для изменяющих методов (add и т. п.) FALSE: запрос мог выполниться,
 #'   и повтор создал бы дубли.
+#' @param timeout Таймаут одного HTTP-запроса в секундах. По умолчанию
+#'   `getOption("yaf.timeout", 60)` или переменная окружения `YAF_TIMEOUT`.
 #'
 #' @return Список с элементами result (поле result ответа API)
 #'   и units (см. yaf_parse_units()).
@@ -101,7 +118,9 @@ yaf_prepare_params <- function(params) {
 yaf_api_request <- function(login, service, body, token,
                             max_retries = 5,
                             retry_codes = c(52, 506, 1000, 1001, 1002),
-                            version = "v5", retry_network = TRUE) {
+                            version = "v5", retry_network = TRUE,
+                            timeout = yaf_default_timeout()) {
+  yaf_check_login(login)
   attempt <- 0L
 
   repeat {
@@ -115,6 +134,7 @@ yaf_api_request <- function(login, service, body, token,
           `Accept-Language` = "ru"
         ) |>
         httr2::req_body_json(body, auto_unbox = TRUE) |>
+        httr2::req_timeout(timeout) |>
         httr2::req_error(is_error = function(resp) FALSE) |>
         httr2::req_perform(),
       error = function(e) e
@@ -123,9 +143,9 @@ yaf_api_request <- function(login, service, body, token,
     retry_reason <- NULL
 
     if (inherits(resp, "error")) {
-      retry_reason <- paste("Сетевая ошибка:", conditionMessage(resp))
+      retry_reason <- paste("\u0421\u0435\u0442\u0435\u0432\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430:", conditionMessage(resp))
       if (!retry_network) {
-        stop(yaf_api_error(sprintf("[%s] %s. Запрос не повторяется: он мог выполниться",
+        stop(yaf_api_error(sprintf("[%s] %s. \u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u0435\u0442\u0441\u044F: \u043E\u043D \u043C\u043E\u0433 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C\u0441\u044F",
                                    service, retry_reason), service = service))
       }
     } else {
@@ -134,20 +154,31 @@ yaf_api_request <- function(login, service, body, token,
       err <- parsed$error
 
       if (!is.null(err)) {
-        code <- as.integer(err$error_code)
-        msg <- sprintf("[%s] Ошибка API %s: %s. %s",
-                       service, code, err$error_string, err$error_detail %||% "")
+        # error_code может отсутствовать или быть нечисловым: не роняем разбор
+        code <- tryCatch(
+          suppressWarnings(as.integer(err$error_code %||% NA_integer_)[1]),
+          error = function(e) NA_integer_
+        )
+        msg <- sprintf("[%s] \u041E\u0448\u0438\u0431\u043A\u0430 API %s: %s. %s",
+                       service,
+                       if (is.na(code)) "?" else code,
+                       err$error_string %||% "",
+                       err$error_detail %||% "")
         if (identical(code, 53L)) {
-          msg <- paste0(msg, " Перевыпустите токен: yaf_get_token('", login, "').")
+          msg <- paste0(msg, " \u041F\u0435\u0440\u0435\u0432\u044B\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0442\u043E\u043A\u0435\u043D: yaf_get_token('", login, "').")
         }
-        if (!code %in% retry_codes) {
+        retry_api <- !is.na(code) && code %in% retry_codes
+        # HTTP 5xx может прийти с неретраибельным кодом: для чтения это
+        # временный сбой, для записи повтор опасен.
+        retry_http <- !retry_api && status >= 500 && isTRUE(retry_network)
+        if (!retry_api && !retry_http) {
           stop(yaf_api_error(msg, code, service, err$request_id %||% NA_character_))
         }
         retry_reason <- msg
       } else if (status >= 500) {
         retry_reason <- paste("HTTP", status)
         if (!retry_network) {
-          stop(yaf_api_error(sprintf("[%s] %s. Запрос не повторяется: он мог выполниться",
+          stop(yaf_api_error(sprintf("[%s] %s. \u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u0435\u0442\u0441\u044F: \u043E\u043D \u043C\u043E\u0433 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C\u0441\u044F",
                                      service, retry_reason), service = service))
         }
       } else if (status != 200 || is.null(parsed)) {
@@ -165,16 +196,17 @@ yaf_api_request <- function(login, service, body, token,
 
     if (attempt > max_retries) {
       stop(yaf_api_error(
-        sprintf("[%s] Запрос не выполнен за %d попыток. Последняя ошибка: %s",
+        sprintf("[%s] \u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D \u0437\u0430 %d \u043F\u043E\u043F\u044B\u0442\u043E\u043A. \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u043E\u0448\u0438\u0431\u043A\u0430: %s",
                 service, attempt, retry_reason),
         service = service
       ))
     }
 
     wait <- min(2^(attempt - 1), 60)
-    # retry_reason подставляется как значение, фигурные скобки в тексте ошибки
-    # не интерпретируются cli
-    cli::cli_inform(c("!" = "{retry_reason} Повтор через {wait} сек. (попытка {attempt}/{max_retries})"))
+    # Текст ошибки API подставляем как значение: cli не должен
+    # интерпретировать фигурные скобки из ответа провайдера
+    cli::cli_inform(c("!" = paste0(retry_reason, " \u041F\u043E\u0432\u0442\u043E\u0440 \u0447\u0435\u0440\u0435\u0437 ", wait,
+                                   " \u0441\u0435\u043A. (\u043F\u043E\u043F\u044B\u0442\u043A\u0430 ", attempt, "/", max_retries, ")")))
     yaf_sleep(wait)
   }
 }
@@ -199,6 +231,8 @@ yaf_api_request <- function(login, service, body, token,
 #' @param page_limit Объектов на страницу (максимум 10000).
 #' @param max_retries Максимум повторов при временных ошибках.
 #' @param progress Показывать прогресс-бар.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Список объектов в том виде, в каком их вернул API. Атрибут
 #'   "units" — баллы после последнего запроса, "requests" — число запросов.
@@ -216,12 +250,17 @@ yaf_api_request <- function(login, service, body, token,
 yaf_api_get <- function(login, service, params = list(),
                         batch_ids = NULL, batch_field = "CampaignIds",
                         batch_size = 10, page_limit = 10000,
-                        max_retries = 5, progress = interactive()) {
-  token <- get_yaf_token(login)
+                        max_retries = 5, progress = interactive(),
+                        token = NULL, timeout = yaf_default_timeout()) {
+  token <- token %||% get_yaf_token(login)
   params <- yaf_prepare_params(params)
 
   if (!is.null(batch_ids)) {
-    batch_ids <- unique(as.numeric(batch_ids))
+    ids <- suppressWarnings(as.numeric(batch_ids))
+    if (anyNA(ids) || any(!is.finite(ids))) {
+      stop("batch_ids \u0434\u043E\u043B\u0436\u0435\u043D \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u0447\u0438\u0441\u043B\u043E\u0432\u044B\u0435 Id \u0431\u0435\u0437 NA.", call. = FALSE)
+    }
+    batch_ids <- unique(ids)
     if (length(batch_ids) == 0) {
       return(structure(list(), units = yaf_parse_units(NULL), requests = 0L))
     }
@@ -248,17 +287,26 @@ yaf_api_get <- function(login, service, params = list(),
       p$Page <- list(Limit = page_limit, Offset = offset)
 
       res <- yaf_api_request(login, service, list(method = "get", params = p),
-                             token, max_retries)
+                             token, max_retries, timeout = timeout)
       n_requests <- n_requests + 1L
       units <- res$units
 
-      data_field <- setdiff(names(res$result), "LimitedBy")
-      if (length(data_field) > 0) {
-        pages[[length(pages) + 1]] <- res$result[[data_field[1]]]
+      data_fields <- setdiff(names(res$result), "LimitedBy")
+      for (field in data_fields) {
+        pages[[length(pages) + 1]] <- res$result[[field]]
       }
 
-      if (is.null(res$result$LimitedBy)) break
-      offset <- res$result$LimitedBy
+      limited_by <- res$result$LimitedBy
+      if (is.null(limited_by)) break
+      # LimitedBy — новый Offset. Если он не растёт, API зациклит выдачу.
+      if (length(limited_by) != 1L || is.na(limited_by) || limited_by <= offset) {
+        stop(yaf_api_error(
+          sprintf("[%s] \u041F\u0430\u0433\u0438\u043D\u0430\u0446\u0438\u044F \u043D\u0435 \u043F\u0440\u043E\u0434\u0432\u0438\u0433\u0430\u0435\u0442\u0441\u044F: LimitedBy = %s \u043F\u0440\u0438 Offset = %s.",
+                  service, paste(limited_by, collapse = ","), offset),
+          service = service
+        ))
+      }
+      offset <- limited_by
     }
 
     if (show_pb) cli::cli_progress_update(id = pb)
@@ -292,13 +340,15 @@ yaf_items_to_df <- function(items) {
 #' Все Id кампаний аккаунта
 #'
 #' @param login Логин в Яндексе.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return Числовой вектор Id кампаний.
 #' @keywords internal
-yaf_all_campaign_ids <- function(login) {
+yaf_all_campaign_ids <- function(login, token = NULL, timeout = yaf_default_timeout()) {
   items <- yaf_api_get(login, "campaigns",
                        list(SelectionCriteria = list(), FieldNames = "Id"),
-                       progress = FALSE)
+                       progress = FALSE, token = token, timeout = timeout)
   vapply(items, function(x) as.numeric(x$Id), numeric(1))
 }
 
