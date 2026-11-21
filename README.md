@@ -47,9 +47,11 @@ OAuth2.
 папку. Пакет автоматически определяет путь в зависимости от операционной
 системы:
 
-- macOS: `~/Library/Application Support/yaf/`
+- macOS: `~/Library/Preferences/org.R-project.R/R/yaf/`
 
-- Windows: `C:\Users\ИмяПользователя\AppData\Local\yaf\config\`
+- Windows: `%APPDATA%\R\yaf\`
+
+- Linux: `~/.config/R/yaf/` (или `$XDG_CONFIG_HOME/R/yaf/`)
 
 При каждом следующем запуске пакет будет сам искать токен в этой папке.
 Вам не придется проходить авторизацию повторно, пока срок действия
