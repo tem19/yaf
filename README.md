@@ -47,9 +47,11 @@ OAuth2.
 папку. Пакет автоматически определяет путь в зависимости от операционной
 системы:
 
-- macOS: `~/Library/Application Support/yaf/`
+- macOS: `~/Library/Preferences/org.R-project.R/R/yaf/`
 
-- Windows: `C:\Users\ИмяПользователя\AppData\Local\yaf\config\`
+- Windows: `%APPDATA%\R\yaf\`
+
+- Linux: `~/.config/R/yaf/` (или `$XDG_CONFIG_HOME/R/yaf/`)
 
 При каждом следующем запуске пакет будет сам искать токен в этой папке.
 Вам не придется проходить авторизацию повторно, пока срок действия
@@ -59,6 +61,12 @@ OAuth2.
 консоли R:
 
 `tools::R_user_dir("yaf", "config")`
+
+Токен можно передать явно аргументом `token` — тогда RDS не читается.
+Это удобно на сервере и при параллельных запусках; сам файл токена
+создаётся с правами `0600`, а каталог — `0700`. У сетевых функций есть
+аргумент `timeout` (по умолчанию 60 секунд, можно задать опцией
+`yaf.timeout` или переменной `YAF_TIMEOUT`).
 
 ## yaf_get_report() - выгрузка статистики
 
@@ -297,7 +305,77 @@ API Директа не отдаёт статус обучения страте�
     )
     attr(kw, "units")
 
+## Создание объектов и действия с ними
+
+`yaf_add_campaigns()`, `yaf_add_adgroups()`, `yaf_add_keywords()`,
+`yaf_add_ads()`, `yaf_add_sitelinks()`, `yaf_add_adextensions()` —
+метод `add` соответствующего сервиса. Объекты режутся на батчи по лимиту
+сервиса, результат — таблица `Id`, `Errors`, `Warnings` в порядке
+переданных объектов. Ошибка отдельного объекта не останавливает
+выполнение, она в колонке `Errors`.
+
+Кампании, группы и объявления по умолчанию создаются через версию API
+`v501`: только так можно создать единую перфоманс-кампанию
+(`UnifiedCampaign`, `UnifiedAdGroup`) и комбинаторные объявления
+(`ResponsiveAd`). Массивы в объектах передавайте как `list()`:
+`RegionIds = list(213)`.
+
+`yaf_moderate_ads()`, `yaf_suspend_campaigns()`, `yaf_resume_campaigns()`,
+`yaf_delete_campaigns()` — действия по вектору Id.
+
+Id созданных объектов возвращаются строками: Id объявлений больше 2^53 и
+не помещаются в `numeric` без потери точности. Эти строки можно передавать
+в функции пакета как есть.
+
+Изменяющие запросы не повторяются при сетевой ошибке и HTTP 5xx: запрос
+мог выполниться, и повтор создал бы дубли. Для остальных методов —
+`yaf_api_call(login, service, method, params, version)`.
+
+    camp <- yaf_add_campaigns("your_yandex_login", list(list(
+      Name = "Поиск | Москва", StartDate = format(Sys.Date()),
+      UnifiedCampaign = list(BiddingStrategy = list(
+        Search = list(BiddingStrategyType = "WB_MAXIMUM_CLICKS",
+                      WbMaximumClicks = list(WeeklySpendLimit = 3e9)),
+        Network = list(BiddingStrategyType = "SERVING_OFF")
+      ))
+    )))
+    camp$Id
+
 # Работа с API Wordstat
+
+## Изображения и видео
+
+Загрузка изображения и привязка к графическому объявлению:
+
+```r
+img <- yaf_upload_images("your_yandex_login", "banner-300x250.png",
+                         names = "Баннер", type = "FIXED_IMAGE")
+yaf_add_ads("your_yandex_login", list(list(
+  AdGroupId = adgroup_id,
+  TextImageAd = list(AdImageHash = img$AdImageHash, Href = "https://example.com")
+)))
+```
+
+Загрузка видео, ожидание конвертации и создание видеодополнения:
+
+```r
+vid <- yaf_upload_videos("your_yandex_login", paths = "clip.mp4", names = "Клип")
+yaf_wait_video_ready("your_yandex_login", vid$Id, wait_seconds = 600)
+creative <- yaf_add_video_creatives("your_yandex_login", vid$Id)
+yaf_add_ads("your_yandex_login", list(list(
+  AdGroupId = adgroup_id,
+  TextAd = list(
+    Title = "Заголовок", Text = "Текст объявления",
+    Href = "https://example.com", Mobile = "NO",
+    VideoExtension = list(CreativeId = creative$Id)
+  )
+)))
+```
+
+`yaf_get_ads()` возвращает колонки `image_hash` и `video_creative_id`.
+Видео через API удалить нельзя — оно остаётся в библиотеке кабинета.
+Изображение можно удалить через `yaf_delete_images()`, если оно не привязано
+к объявлению.
 
 ## yaf_ws_top() - сбор топовых запросов из Вордстата
 

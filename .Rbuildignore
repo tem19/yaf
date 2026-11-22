@@ -3,3 +3,9 @@
 ^LICENSE\.md$
 ^README\.Rmd$
 ^README\.html$
+^AUDIT\.md$
+^AGENTS\.md$
+^REQUIRED_CHANGES\.md$
+^README\.adapter\.md$
+^\.github$
+^\.Rlib$

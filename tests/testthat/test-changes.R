@@ -78,7 +78,7 @@ test_that("yaf_check_changes режет id на батчи и берёт сам�
                                             campaign_ids = 1:3500))
   expect_equal(sizes, c(3000, 500))
   expect_equal(res$modified$Type, c("Campaign", "Ad", "Campaign", "Ad"))
-  expect_equal(res$modified$Id, c(1, 101, 3001, 102))
+  expect_equal(res$modified$Id, c("1", "101", "3001", "102"))
   expect_equal(res$campaigns_stat$CampaignId, c(1, 3001))
   expect_equal(res$timestamp, "2025-02-01T00:00:01Z")
 })
@@ -105,8 +105,8 @@ test_that("необработанные объекты перепроверяю�
 
   res <- suppressMessages(yaf_check_changes("login", "2025-01-31T00:00:00Z", campaign_ids = 1))
   expect_length(requests, 2)
-  expect_equal(unlist(requests[[2]]$AdGroupIds), c(20, 21))
-  expect_equal(res$modified$Id, c(1, 21))
+  expect_equal(unlist(requests[[2]]$AdGroupIds), c("20", "21"))
+  expect_equal(res$modified$Id, c("1", "21"))
   expect_equal(nrow(res$unprocessed), 0)
 })
 
@@ -125,5 +125,5 @@ test_that("остаток необработанных объектов возв
     "Не удалось обработать"
   )
   expect_equal(res$unprocessed$Type, "Ad")
-  expect_equal(res$unprocessed$Id, 5)
+  expect_equal(res$unprocessed$Id, "5")
 })

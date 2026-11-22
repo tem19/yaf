@@ -54,12 +54,15 @@ yaf_priority_goal_ids <- function(x) {
 #' @param goal_ids Id целей; 0 — конверсии по всем целям (без Goals).
 #' @param date_from,date_to Период отчёта.
 #' @param attribution Модель атрибуции.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame с колонками CampaignId, Platform (SEARCH / NETWORK),
 #'   GoalId, Conversions.
 #' @keywords internal
 yaf_learning_conversions <- function(login, campaign_ids, goal_ids,
-                                     date_from, date_to, attribution) {
+                                     date_from, date_to, attribution,
+                                     token = NULL, timeout = yaf_default_timeout()) {
   filter <- paste("CampaignId IN", paste(format(campaign_ids, scientific = FALSE,
                                                 trim = TRUE), collapse = ","))
   fields <- c("CampaignId", "AdNetworkType", "Conversions")
@@ -68,7 +71,8 @@ yaf_learning_conversions <- function(login, campaign_ids, goal_ids,
   out <- list()
   if (0 %in% goal_ids) {
     r <- yaf_get_report(login, date_from = date_from, date_to = date_to,
-                        fields = fields, filter = filter)
+                        fields = fields, filter = filter,
+                        token = token, timeout = timeout)
     if (nrow(r) > 0) {
       out[[length(out) + 1]] <- data.frame(
         CampaignId = as.numeric(r$CampaignId),
@@ -84,7 +88,7 @@ yaf_learning_conversions <- function(login, campaign_ids, goal_ids,
   for (chunk in split(goal_ids, ceiling(seq_along(goal_ids) / 10))) {
     r <- yaf_get_report(login, date_from = date_from, date_to = date_to,
                         fields = fields, goals = chunk, attribution = attribution,
-                        filter = filter)
+                        filter = filter, token = token, timeout = timeout)
     conv_cols <- grep("^Conversions_\\d+_", names(r), value = TRUE)
     for (col in conv_cols) {
       if (nrow(r) == 0) next
@@ -143,6 +147,8 @@ yaf_learning_conversions <- function(login, campaign_ids, goal_ids,
 #' @param days Длина периода в днях: от Sys.Date() - days до вчера.
 #' @param attribution Модель атрибуции для конверсий. AUTO — модель из
 #'   настроек кампании.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame, одна строка на кампанию и площадку: CampaignId,
 #'   CampaignName, CampaignType, State, Platform (SEARCH / NETWORK / ALL),
@@ -170,9 +176,12 @@ yaf_strategy_learning_check <- function(login,
                                         goal_ids = NULL,
                                         min_conversions = 10,
                                         days = 7,
-                                        attribution = "AUTO") {
+                                        attribution = "AUTO",
+                                        token = NULL,
+                                        timeout = yaf_default_timeout()) {
   date_from <- Sys.Date() - days
   date_to <- Sys.Date() - 1
+  token <- token %||% get_yaf_token(login)
 
   campaigns <- yaf_api_get(login, "campaigns", list(
     SelectionCriteria = list(
@@ -183,11 +192,17 @@ yaf_strategy_learning_check <- function(login,
     UnifiedCampaignFieldNames = c("BiddingStrategy", "PriorityGoals", "PackageBiddingStrategy"),
     MobileAppCampaignFieldNames = c("BiddingStrategy", "PackageBiddingStrategy"),
     CpmBannerCampaignFieldNames = c("BiddingStrategy")
-  ), progress = FALSE)
+  ), progress = FALSE, token = token, timeout = timeout)
 
   # Пакетные стратегии
+  campaign_block <- function(x) {
+    name <- grep("Campaign$", names(x), value = TRUE)
+    if (length(name) == 0) return(NULL)
+    x[[name[1]]]
+  }
   strategy_of <- function(x) {
-    block <- x[[grep("Campaign$", names(x), value = TRUE)[1]]]
+    block <- campaign_block(x)
+    if (is.null(block)) return(NA_real_)
     id <- block$PackageBiddingStrategy$StrategyId
     if (is.null(id)) NA_real_ else as.numeric(id)
   }
@@ -204,7 +219,7 @@ yaf_strategy_learning_check <- function(login,
       StrategyAverageCrrFieldNames = "GoalId",
       StrategyPayForConversionCrrFieldNames = "GoalId"
     ), batch_ids = package_ids, batch_field = "Ids", batch_size = 1000,
-    progress = FALSE)
+    progress = FALSE, token = token, timeout = timeout)
     for (s in items) packages[[as.character(s$Id)]] <- s
   }
 
@@ -212,7 +227,11 @@ yaf_strategy_learning_check <- function(login,
   rows <- list()
   for (i in seq_along(campaigns)) {
     x <- campaigns[[i]]
-    block <- x[[grep("Campaign$", names(x), value = TRUE)[1]]]
+    block <- campaign_block(x)
+    if (is.null(block)) {
+      cli::cli_warn("\u041A\u0430\u043C\u043F\u0430\u043D\u0438\u044F {x$Id}: \u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u044B\u0439 \u0442\u0438\u043F, \u043F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u0430.")
+      next
+    }
     base <- list(CampaignId = as.numeric(x$Id), CampaignName = x$Name,
                  CampaignType = x$Type, State = x$State)
 
@@ -271,7 +290,8 @@ yaf_strategy_learning_check <- function(login,
 
   conv <- if (length(report_campaigns) > 0 && length(report_goals) > 0) {
     yaf_learning_conversions(login, report_campaigns, report_goals,
-                             date_from, date_to, attribution)
+                             date_from, date_to, attribution,
+                             token = token, timeout = timeout)
   } else {
     data.frame(CampaignId = numeric(0), Platform = character(0),
                GoalId = numeric(0), Conversions = numeric(0))

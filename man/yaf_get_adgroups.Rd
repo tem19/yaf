@@ -9,7 +9,9 @@ yaf_get_adgroups(
   campaign_ids = NULL,
   fields = c("Id", "CampaignId", "Name", "Status", "Type"),
   type_fields = list(),
-  raw = FALSE
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -23,6 +25,10 @@ yaf_get_adgroups(
 например list(TextAdGroupFeedParamsFieldNames = c("FeedId")).}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками adgroup_id, campaign_id, adgroup_name,

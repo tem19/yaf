@@ -18,7 +18,9 @@ yaf_get_report(
   include_vat = TRUE,
   save_report = FALSE,
   save_dir = "reports",
-  max_tries = 120L
+  max_tries = 120L,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -51,6 +53,11 @@ yaf_get_report(
 \item{max_tries}{Максимальное количество попыток опроса отчета до остановки.
 Попытки идут не чаще раза в 10 секунд (лимит API): 120 попыток — около
 20 минут ожидания.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах. Скачивание большого
+отчёта может занимать больше времени, чем обычный запрос.}
 }
 \value{
 data.frame с запрошенными полями отчета.

@@ -10,7 +10,9 @@ yaf_get_keywords(
   adgroup_ids = NULL,
   fields = c("Id", "CampaignId", "AdGroupId", "Keyword", "State", "Status",
     "ServingStatus", "Bid", "ContextBid", "StrategyPriority", "UserParam1", "UserParam2"),
-  raw = FALSE
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -24,6 +26,10 @@ yaf_get_keywords(
 \item{fields}{Поля из FieldNames сервиса keywords.}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с полями из fields и колонками KeywordPhrase

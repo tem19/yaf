@@ -19,7 +19,9 @@ yaf_get_bid_modifiers(
      SerpLayoutAdjustmentFieldNames = c("SerpLayout",
     "BidModifier"), IncomeGradeAdjustmentFieldNames = c("Grade", "BidModifier"),
     AdGroupAdjustmentFieldNames = c("BidModifier")),
-  raw = FALSE
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -33,6 +35,10 @@ yaf_get_bid_modifiers(
 например list(MobileAdjustmentFieldNames = c("BidModifier")).}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame с колонками modifier_id, campaign_id, adgroup_id,

@@ -64,7 +64,7 @@ test_that("yaf_strategy_learning_check считает конверсии по ц
 
   invisible(capture.output(res <- yaf_strategy_learning_check("login")))
 
-  expect_equal(strategy_ids, 900)
+  expect_equal(strategy_ids, "900")
   expect_equal(sort(unlist(report_body$Goals)), c(111, 222, 333))
   expect_match(report_body$SelectionCriteria$Filter[[1]]$Field, "CampaignId")
   expect_setequal(as.numeric(unlist(report_body$SelectionCriteria$Filter[[1]]$Values)),

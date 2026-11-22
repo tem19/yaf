@@ -4,6 +4,8 @@
 #' @param ids Вектор ID наборов (необязательно). Если не задан,
 #'   выгружаются все наборы аккаунта.
 #' @param raw Если TRUE, вернуть сырой список объектов API.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame: Id, Name, NegativeKeywords (через "; "), Associated.
 #' @export
@@ -12,13 +14,15 @@
 #' \dontrun{
 #' sets <- yaf_get_negative_keyword_sets("my_login")
 #' }
-yaf_get_negative_keyword_sets <- function(login, ids = NULL, raw = FALSE) {
+yaf_get_negative_keyword_sets <- function(login, ids = NULL, raw = FALSE,
+                                          token = NULL, timeout = yaf_default_timeout()) {
   # SelectionCriteria не передаём совсем: пустой SelectionCriteria API
   # отклоняет (в нём обязателен Ids), а без него возвращает все наборы
   items <- yaf_api_get(
     login, "negativekeywordsharedsets",
     params = list(FieldNames = c("Id", "Name", "NegativeKeywords", "Associated")),
-    batch_ids = ids, batch_field = "Ids", batch_size = 30
+    batch_ids = ids, batch_field = "Ids", batch_size = 30,
+    token = token, timeout = timeout
   )
 
   if (raw) return(items)

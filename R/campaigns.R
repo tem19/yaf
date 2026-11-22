@@ -12,6 +12,8 @@
 #' @param type_fields Именованный список тип-специфичных полей,
 #'   например list(TextCampaignFieldNames = c("BiddingStrategy")).
 #' @param raw Если TRUE, вернуть сырой список объектов API без разбора.
+#' @param token OAuth-токен. Если NULL, читается через get_yaf_token().
+#' @param timeout Таймаут одного HTTP-запроса в секундах.
 #'
 #' @return data.frame, одна строка на кампанию. Вложенные поля развёрнуты
 #'   в колонки с именами через точку (Statistics.Clicks,
@@ -44,7 +46,8 @@ yaf_get_campaigns <- function(login,
                                                                 "NegativeKeywordSharedSetIds"),
                                 CpmBannerCampaignFieldNames = c("BiddingStrategy")
                               ),
-                              raw = FALSE) {
+                              raw = FALSE, token = NULL,
+                              timeout = yaf_default_timeout()) {
   params <- c(
     list(
       SelectionCriteria = list(
@@ -55,16 +58,22 @@ yaf_get_campaigns <- function(login,
     type_fields
   )
 
-  items <- yaf_api_get(login, "campaigns", params, progress = FALSE)
+  items <- yaf_api_get(login, "campaigns", params, progress = FALSE,
+                       token = token, timeout = timeout)
 
   if (raw) return(items)
   if (length(items) == 0) return(data.frame())
 
   rows <- lapply(items, function(x) {
-    # Блок TextCampaign / UnifiedCampaign / ... поднимаем на верхний уровень
+    # Блок TextCampaign / UnifiedCampaign / ... поднимаем на верхний уровень.
+    # Верхнеуровневые поля идут последними и побеждают при совпадении имён;
+    # дубликаты имён убираем, иначе [[ ]] вернёт поле блока.
     block <- grep("Campaign$", names(x), value = TRUE)
     for (b in block) {
-      x <- c(x[setdiff(names(x), b)], x[[b]])
+      bv <- x[[b]]
+      rest <- x[setdiff(names(x), b)]
+      bv <- bv[!names(bv) %in% names(rest)]
+      x <- c(bv, rest)
     }
     yaf_flatten_object(x)
   })

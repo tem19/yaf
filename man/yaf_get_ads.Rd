@@ -11,9 +11,13 @@ yaf_get_ads(
   ad_ids = NULL,
   fields = c("Id", "CampaignId", "AdGroupId", "Type", "Status", "State"),
   type_fields = list(TextAdFieldNames = c("Title", "Title2", "Text", "Href",
-    "DisplayUrlPath"), DynamicTextAdFieldNames = c("Text"), MobileAppAdFieldNames =
-    c("Title", "Text")),
-  raw = FALSE
+    "DisplayUrlPath", "AdImageHash", "VideoExtension"), TextImageAdFieldNames =
+    c("AdImageHash", "Href"), ResponsiveAdFieldNames = c("Titles", "Texts", "Href",
+    "AdImages", "VideoExtensions"), DynamicTextAdFieldNames = c("Text"),
+    MobileAppAdFieldNames = c("Title", "Text")),
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -31,10 +35,16 @@ yaf_get_ads(
 например list(TextAdFieldNames = c("Title", "Href")).}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
-data.frame с колонками ad_id, campaign_id, adgroup_id, type,
-status, state, title, title2, text, href, display_url_path.
+data.frame с колонками ad_id (character: Id объявлений больше
+2^53 и не помещаются в numeric без потери точности), campaign_id,
+adgroup_id, type, status, state, title, title2, text, href,
+display_url_path, image_hash, video_creative_id.
 При raw = TRUE — список объектов API.
 }
 \description{

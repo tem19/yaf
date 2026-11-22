@@ -13,7 +13,9 @@ yaf_get_campaigns(
     "AttributionModel", "TrackingParams", "NegativeKeywordSharedSetIds"),
     MobileAppCampaignFieldNames = c("BiddingStrategy", "NegativeKeywordSharedSetIds"),
     CpmBannerCampaignFieldNames = c("BiddingStrategy")),
-  raw = FALSE
+  raw = FALSE,
+  token = NULL,
+  timeout = yaf_default_timeout()
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ yaf_get_campaigns(
 например list(TextCampaignFieldNames = c("BiddingStrategy")).}
 
 \item{raw}{Если TRUE, вернуть сырой список объектов API без разбора.}
+
+\item{token}{OAuth-токен. Если NULL, читается через get_yaf_token().}
+
+\item{timeout}{Таймаут одного HTTP-запроса в секундах.}
 }
 \value{
 data.frame, одна строка на кампанию. Вложенные поля развёрнуты
